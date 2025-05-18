@@ -9,17 +9,26 @@ import {
   AccountTypesGuard,
 } from '@shared/guards';
 import { GraphqlLoggingPlugin } from '@shared/plugins';
-import { UserModule } from '@domain/user/user.module';
+
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
-import { UserService } from '@domain/user/services/user.service';
+
 import { UserResolver } from './resolvers/user.resolver';
+import { ApplicationUserModule } from '@application/user/user.module';
+import { ApolloDriverConfig, ApolloDriver } from '@nestjs/apollo';
+import { GraphQLModule } from '@nestjs/graphql';
+import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
 
 @Module({
   imports: [
-    // AdminModule,
-    UserModule,
-    // UserBalanceTransactionModule,
+    GraphQLModule.forRoot<ApolloDriverConfig>({
+      driver: ApolloDriver,
+      autoSchemaFile: true,
+      fieldResolverEnhancers: ['guards', 'filters', 'interceptors'],
+      playground: false,
+      plugins: [ApolloServerPluginLandingPageLocalDefault()],
+    }),
+    ApplicationUserModule,
     JwtModule,
     ConfigModule,
     EnvironmentConfig,
@@ -42,7 +51,6 @@ import { UserResolver } from './resolvers/user.resolver';
       provide: APP_GUARD,
       useClass: AccountTypesGuard,
     },
-    UserModule,
     GraphqlLoggingPlugin,
     UserResolver,
   ],

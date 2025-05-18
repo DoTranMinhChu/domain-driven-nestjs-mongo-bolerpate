@@ -1,5 +1,4 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-
 import { MongooseBaseSchema } from '../mongoose-base.schema';
 
 @Schema({
@@ -24,4 +23,4 @@ export class UserSchema extends MongooseBaseSchema {
 }
 
 export const UserSchemaFactory = SchemaFactory.createForClass(UserSchema);
-UserSchemaFactory.index({ name: 'text' }, { weights: { name: 1 } });
+// UserSchemaFactory.index({ name: 'text' }, { weights: { name: 1 } });

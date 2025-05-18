@@ -12,9 +12,11 @@ import {
   MongooseUpdateOptions,
 } from './mongoose-base.schema';
 import _ from 'lodash';
+import { QueryGetListInput } from './inputs';
 
-export interface IMongooseBaseRepository<T> {
-  create(
+export abstract class AMongooseBaseRepository<T> {
+  abstract fetch(queryInput?: QueryGetListInput, select?: string): Promise<any>;
+  abstract create(
     dto: Partial<T>,
   ): Promise<
     mongoose.IfAny<
@@ -24,7 +26,7 @@ export interface IMongooseBaseRepository<T> {
         mongoose.Default__v<mongoose.Require_id<T>>
     >
   >;
-  findOneById(
+  abstract findOneById(
     id: string | Types.ObjectId,
   ): Promise<mongoose.IfAny<
     T,
@@ -33,7 +35,7 @@ export interface IMongooseBaseRepository<T> {
       mongoose.Default__v<mongoose.Require_id<T>>
   > | null>;
 
-  findOneByCondition(
+  abstract findOneByCondition(
     filter?: FilterQuery<T>,
     projection?: ProjectionType<T> | null,
     options?: QueryOptions<T> | null,
@@ -44,7 +46,7 @@ export interface IMongooseBaseRepository<T> {
       mongoose.Default__v<mongoose.Require_id<T>>
   > | null>;
 
-  findAll(
+  abstract findAll(
     filter?: FilterQuery<T>,
     projection?: ProjectionType<T> | null | undefined,
     options?:
@@ -62,7 +64,7 @@ export interface IMongooseBaseRepository<T> {
     >[];
   }>;
 
-  updateOneById(
+  abstract updateOneById(
     id: string | Types.ObjectId,
     update: UpdateQuery<T>,
     options?: QueryOptions<T>,
@@ -73,18 +75,18 @@ export interface IMongooseBaseRepository<T> {
       mongoose.Default__v<mongoose.Require_id<T>>
   > | null>;
 
-  updateMany(
+  abstract updateMany(
     filter: FilterQuery<T> | undefined,
     update: UpdateQuery<T>,
     options?: MongooseUpdateOptions<T>,
   ): Promise<mongoose.UpdateWriteOpResult>;
 
-  softDelete(
+  abstract softDelete(
     id: string | Types.ObjectId,
     options?: QueryOptions<T> | null,
   ): Promise<T | null>;
 
-  permanentlyDelete(
+  abstract permanentlyDelete(
     id: string | Types.ObjectId,
     options?: QueryOptions<T> | null,
   ): Promise<mongoose.IfAny<
@@ -94,7 +96,7 @@ export interface IMongooseBaseRepository<T> {
       mongoose.Default__v<mongoose.Require_id<T>>
   > | null>;
 
-  count(
+  abstract count(
     filter?: mongoose.FilterQuery<T> | undefined,
     options?: mongoose.mongo.CountOptions &
       Omit<mongoose.MongooseQueryOptions<T>, 'lean' | 'timestamps'>,

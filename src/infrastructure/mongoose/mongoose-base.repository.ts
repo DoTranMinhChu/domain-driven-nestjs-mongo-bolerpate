@@ -12,10 +12,10 @@ import {
   MongooseUpdateOptions,
 } from './mongoose-base.schema';
 import _ from 'lodash';
-import { IMongooseBaseRepository } from './mongoose-base.repository.interface';
+import { AMongooseBaseRepository } from './mongoose-base.repository.abstract';
 
 export class MongooseBaseRepository<T extends MongooseBaseSchema>
-  implements IMongooseBaseRepository<T>
+  implements AMongooseBaseRepository<T>
 {
   protected constructor(private readonly model: Model<T>) {
     this.model = model;

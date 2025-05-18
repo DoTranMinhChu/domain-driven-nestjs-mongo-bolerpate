@@ -4,23 +4,29 @@ import { AppService } from './app.service';
 import { MongooseConfig } from '@infrastructure/mongoose/mongoose.config';
 import { EnvironmentConfig } from '@infrastructure/environment/environment.config';
 import { GraphqlModule } from '@presentation/graphql/graphql.module';
-import { ApolloDriverConfig, ApolloDriver } from '@nestjs/apollo';
-import { GraphQLModule } from '@nestjs/graphql';
-import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
+
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { AllExceptionsFilter } from '@shared/filters';
+import { AuthGuard, AccountTypesGuard } from '@shared/guards';
+import { JwtModule } from '@nestjs/jwt';
 @Module({
-  imports: [
-    GraphQLModule.forRoot<ApolloDriverConfig>({
-      driver: ApolloDriver,
-      autoSchemaFile: true,
-      fieldResolverEnhancers: ['guards', 'filters', 'interceptors'],
-      playground: false,
-      plugins: [ApolloServerPluginLandingPageLocalDefault()],
-    }),
-    GraphqlModule,
-    EnvironmentConfig,
-    MongooseConfig,
-  ],
+  imports: [GraphqlModule, JwtModule, EnvironmentConfig, MongooseConfig],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: AuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: AccountTypesGuard,
+    },
+  ],
 })
 export class AppModule {}

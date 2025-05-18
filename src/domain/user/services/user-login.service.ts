@@ -6,19 +6,20 @@ import { LoginUserObjectType } from '@presentation/graphql/object-types';
 import { BadRequestException } from '@shared/exceptions/bad-request.exception';
 import { EXCEPTION } from '@shared/exceptions/exception';
 import { BcryptUtil } from '@shared/utils/bcrypt.util';
-import { IUserRepository } from '../repositories/user.repository.interface';
+
 import { NotFoundException } from '@shared/exceptions/not-found.exception';
 
 import { EAccountType } from '@shared/enums';
 import { AuthService } from '@domain/auth/services/auth.service';
 import { IAccessToken } from '@domain/auth/interfaces';
-import { Inject } from '@nestjs/common';
-import { UserRepository } from '@infrastructure/mongoose/repositories/user.repository';
+import { Inject, Injectable } from '@nestjs/common';
 
+import { AUserRepository } from '../repositories/user.repository.abstract';
+@Injectable()
 export class UserLoginService {
   constructor(
-    @Inject(UserRepository.name)
-    private readonly userRepository: IUserRepository,
+    @Inject(AUserRepository)
+    private readonly userRepository: AUserRepository,
     private readonly authService: AuthService,
   ) {}
   async userLogin(

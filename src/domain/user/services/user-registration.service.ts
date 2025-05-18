@@ -3,12 +3,15 @@ import { LoginUserObjectType } from '@presentation/graphql/object-types';
 import { BadRequestException } from '@shared/exceptions/bad-request.exception';
 import { EXCEPTION } from '@shared/exceptions/exception';
 import { BcryptUtil } from '@shared/utils/bcrypt.util';
-import { IUserRepository } from '../repositories/user.repository.interface';
-import { UserLoginService } from './user-login.service';
 
+import { UserLoginService } from './user-login.service';
+import { AUserRepository } from '../repositories/user.repository.abstract';
+import { Inject, Injectable } from '@nestjs/common';
+@Injectable()
 export class UserRegistrationService {
   constructor(
-    private readonly userRepository: IUserRepository,
+    @Inject(AUserRepository)
+    private readonly userRepository: AUserRepository,
     private readonly userLoginService: UserLoginService,
   ) {}
   async userRegistration(

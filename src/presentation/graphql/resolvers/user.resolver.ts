@@ -26,11 +26,12 @@ import {
 import { QueryGetListInputType } from '../input-types/base';
 import { UserLoginService } from '@domain/user/services/user-login.service';
 import { LoginUserObjectType } from '../object-types';
+import { UserLoginUseCase } from '@application/user/use-cases/user-logiin.use-case';
 
 @Resolver(UserObjectType)
 export class UserResolver {
   constructor(
-    private readonly userLoginService: UserLoginService,
+    private readonly userLoginUseCase: UserLoginUseCase,
     //private readonly userBalanceTransactionService: UserBalanceTransactionService,
   ) {}
 
@@ -68,7 +69,7 @@ export class UserResolver {
   async loginUser(
     @Args(UserLoginInputType.name) userLoginInput: UserLoginInputType,
   ): Promise<LoginUserObjectType> {
-    return this.userLoginService.userLogin(userLoginInput);
+    return this.userLoginUseCase.execute(userLoginInput);
   }
 
   // @ResolveField()

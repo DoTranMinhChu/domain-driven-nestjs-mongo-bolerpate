@@ -13,10 +13,10 @@ import { MongooseUpdateOptions } from './mongoose-base.schema';
 import { NotFoundException } from '@nestjs/common';
 import { EXCEPTION } from '@shared/exceptions/exception';
 import { QueryGetListInput } from './inputs/query-get-list.input';
-import { IMongooseBaseRepository } from './mongoose-base.repository.interface';
+import { AMongooseBaseRepository } from './mongoose-base.repository.abstract';
 
 export class MongooseBaseService<T extends MongooseBaseObjectType> {
-  constructor(private readonly repository: MongooseBaseRepository<T>) {}
+  constructor(private readonly repository: AMongooseBaseRepository<T>) {}
   async fetch(query: QueryGetListInput) {
     return await this.repository.fetch(query);
   }

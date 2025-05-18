@@ -1,15 +1,15 @@
-import { AuthService } from '@domain/auth/services/auth.service';
-import { UserRepository } from '@infrastructure/mongoose/repositories/user.repository';
+// src/domain/user/user.module.ts
+import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
 import {
   UserSchema,
   UserSchemaFactory,
 } from '@infrastructure/mongoose/schemas';
-import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
-import { MongooseModule } from '@nestjs/mongoose/dist';
-import { UserResolver } from '@presentation/graphql/resolvers/user.resolver';
+import { UserRepository } from '@infrastructure/mongoose/repositories/user.repository';
+import { AUserRepository } from './repositories/user.repository.abstract';
 import { UserService } from './services/user.service';
 import { UserLoginService } from './services/user-login.service';
+import { AuthService } from '@domain/auth/services/auth.service';
 
 @Module({
   imports: [
@@ -18,12 +18,14 @@ import { UserLoginService } from './services/user-login.service';
     ]),
   ],
   providers: [
+    // đây là token (abstract) map xuống class thực thi
+    { provide: AUserRepository, useClass: UserRepository },
+    // những provider khác
+    UserService,
     UserLoginService,
     AuthService,
-    UserService,
-    UserRepository,
-    { provide: UserRepository.name, useClass: UserRepository },
   ],
-  exports: [UserService, UserLoginService, UserRepository],
+  // EXPORT tất cả provider mà module ngoài có thể cần
+  exports: [AUserRepository, UserService, UserLoginService, AuthService],
 })
-export class UserModule {}
+export class DomainUserModule {}
