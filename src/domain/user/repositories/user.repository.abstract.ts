@@ -1,4 +1,4 @@
-import { AMongooseBaseRepository } from '@infrastructure/mongoose/mongoose-base.repository.abstract';
+import { AMongooseBaseRepository } from '@infrastructure/mongoose';
 import { UserSchema } from '@infrastructure/mongoose/schemas';
 
 export abstract class AUserRepository extends AMongooseBaseRepository<UserSchema> {

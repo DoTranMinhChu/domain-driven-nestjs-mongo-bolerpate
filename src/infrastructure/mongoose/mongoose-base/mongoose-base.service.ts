@@ -12,12 +12,13 @@ import { MongooseBaseRepository } from './mongoose-base.repository';
 import { MongooseUpdateOptions } from './mongoose-base.schema';
 import { NotFoundException } from '@nestjs/common';
 import { EXCEPTION } from '@shared/exceptions/exception';
-import { QueryGetListInput } from './inputs/query-get-list.input';
+
 import { AMongooseBaseRepository } from './mongoose-base.repository.abstract';
+import { IQueryGetListInputType } from '@shared/interfaces/query-list-input.interface';
 
 export class MongooseBaseService<T extends MongooseBaseObjectType> {
   constructor(private readonly repository: AMongooseBaseRepository<T>) {}
-  async fetch(query: QueryGetListInput) {
+  async fetch(query: IQueryGetListInputType) {
     return await this.repository.fetch(query);
   }
   async create(createData: T | any) {

@@ -82,7 +82,7 @@ export class MongooseBaseRepository<T extends MongooseBaseSchema>
       );
       query.setQuery({ ...filter });
     }
-    const countQuery = this.model.find().merge(query);
+
     query.limit(limit);
     query.skip(skip);
 

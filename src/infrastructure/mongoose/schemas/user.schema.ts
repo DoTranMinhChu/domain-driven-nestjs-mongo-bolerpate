@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { MongooseBaseSchema } from '../mongoose-base.schema';
+import { MongooseBaseSchema } from '../mongoose-base';
 
 @Schema({
   timestamps: true,

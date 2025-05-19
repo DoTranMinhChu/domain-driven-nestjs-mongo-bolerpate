@@ -1,7 +1,7 @@
-import { MongooseBaseObjectType } from '@infrastructure/mongoose';
 import { Field, ObjectType } from '@nestjs/graphql/dist';
 import { Mixed } from '@presentation/graphql/scalar-types/mixed.scalar-type';
 import { PaginateDataObjectType } from '../base/base-pagination.object-type';
+import { MongooseBaseObjectType } from '@infrastructure/mongoose/mongoose-base';
 
 @ObjectType()
 export class UserObjectType extends MongooseBaseObjectType {
