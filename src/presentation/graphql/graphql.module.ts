@@ -1,5 +1,4 @@
 import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
-
 import { EnvironmentConfig } from '@infrastructure/environment/environment.config';
 import { APP_GUARD } from '@nestjs/core';
 import {
@@ -9,15 +8,14 @@ import {
   AccountTypesGuard,
 } from '@shared/guards';
 import { GraphqlLoggingPlugin } from '@shared/plugins';
-
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
 
-import { UserResolver } from './resolvers/user.resolver';
-import { ApplicationUserModule } from '@application/user/user.module';
 import { ApolloDriverConfig, ApolloDriver } from '@nestjs/apollo';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
+import { UserResolver } from './resolvers';
+import { ApplicationUserModule } from '@application';
 
 @Module({
   imports: [

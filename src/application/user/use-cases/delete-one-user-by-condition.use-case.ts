@@ -1,7 +1,7 @@
 import { UserService } from '@domain/user/services';
 import { UserSchema } from '@infrastructure/mongoose/schemas';
 import { Injectable } from '@nestjs/common';
-import { FilterQuery, UpdateQuery } from 'mongoose';
+import { FilterQuery } from 'mongoose';
 
 @Injectable()
 export class DeleteOneUserByConditionUseCase {

@@ -1,0 +1,30 @@
+import { Domain<%= Name %>Module } from '@domain/<%= kebab %>/<%= kebab %>.module';
+import { Module } from '@nestjs/common';
+import {
+  Create<%= Name %>UseCase,
+  DeleteOne<%= Name %>ByConditionUseCase,
+  Fetch<%= Name %>sUseCase,
+  GetOne<%= Name %>ByConditionUseCase,
+  UpdateOne<%= Name %>ByConditionUseCase,
+} from './use-cases';
+
+
+@Module({
+  imports: [Domain<%= Name %>Module],
+  providers: [
+    Fetch<%= Name %>sUseCase,
+    GetOne<%= Name %>ByConditionUseCase,
+    Create<%= Name %>UseCase,
+    UpdateOne<%= Name %>ByConditionUseCase,
+    DeleteOne<%= Name %>ByConditionUseCase,
+  ],
+  exports: [
+    Domain<%= Name %>Module,
+    Fetch<%= Name %>sUseCase,
+    GetOne<%= Name %>ByConditionUseCase,
+    Create<%= Name %>UseCase,
+    UpdateOne<%= Name %>ByConditionUseCase,
+    DeleteOne<%= Name %>ByConditionUseCase,
+  ],
+})
+export class Application<%= Name %>Module {}

@@ -1,0 +1,68 @@
+import {
+  Fetch<%= Name %>UseCase,
+  GetOne<%= Name %>ByConditionUseCase,
+  Create<%= Name %>UseCase,
+  UpdateOne<%= Name %>ByConditionUseCase,
+  DeleteOne<%= Name %>ByConditionUseCase,
+} from '@application';
+import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { GraphqlAuthApi, GraphqlAccountType } from '@shared/decorators';
+import { _idArg, DataArg } from '../arguments';
+import {
+  Create<%= Name %>InputType,
+  Update<%= Name %>InputType,
+  QueryGetListInputType,
+} from '../input-types';
+import { <%= Name %>ObjectType, <%= Name %>PaginateObjectType } from '../object-types';
+
+@Resolver(<%= Name %>ObjectType)
+export class <%= Name %>Resolver {
+  constructor(
+    private readonly fetch<%= Name %>UseCase: Fetch<%= Name %>UseCase,
+    private readonly getOne<%= Name %>ByConditionUseCase: GetOne<%= Name %>ByConditionUseCase,
+    private readonly create<%= Name %>UseCase: Create<%= Name %>UseCase,
+    private readonly updateOne<%= Name %>ByConditionUseCase: UpdateOne<%= Name %>ByConditionUseCase,
+    private readonly deleteOne<%= Name %>ByConditionUseCase: DeleteOne<%= Name %>ByConditionUseCase,
+  ) {}
+
+  @Query(() => <%= Name %>PaginateObjectType)
+  @GraphqlAuthApi()
+  @GraphqlAccountType([])
+  async getAll<%= Name %>s(
+    @Args(QueryGetListInputType.name, { nullable: true })
+    queryGetListInput: QueryGetListInputType,
+  ) {
+    return await this.fetch<%= Name %>UseCase.execute(queryGetListInput);
+  }
+
+  @Query(() => <%= Name %>ObjectType)
+  @GraphqlAuthApi()
+  @GraphqlAccountType([])
+  async getOne<%= Name %>ById(@_idArg() _id: string) {
+    return this.getOne<%= Name %>ByConditionUseCase.execute({ _id });
+  }
+
+  @Mutation(() => <%= Name %>ObjectType)
+  @GraphqlAuthApi()
+  @GraphqlAccountType([])
+  async create<%= Name %>(@DataArg() data: Create<%= Name %>InputType) {
+    return this.create<%= Name %>UseCase.execute(data);
+  }
+
+  @Mutation(() => <%= Name %>ObjectType)
+  @GraphqlAuthApi()
+  @GraphqlAccountType([])
+  async updateOne<%= Name %>ById(
+    @_idArg() _id: string,
+    @DataArg() data: Update<%= Name %>InputType,
+  ) {
+    return this.updateOne<%= Name %>ByConditionUseCase.execute({ _id }, data);
+  }
+
+  @Mutation(() => <%= Name %>ObjectType)
+  @GraphqlAuthApi()
+  @GraphqlAccountType([])
+  async deleteOne<%= Name %>ById(@_idArg() _id: string) {
+    return this.deleteOne<%= Name %>ByConditionUseCase.execute({ _id });
+  }
+}

@@ -8,8 +8,8 @@ import { <%= Name %>Schema } from '../schemas';
 export class <%= Name %>Repository extends MongooseBaseRepository<<%= Name %>Schema> {
   constructor(
     @InjectModel(<%= Name %>Schema.name)
-    private readonly <%= lower %>Model: Model<<%= Name %>Schema>,
+    private readonly <%= camelCase %>Model: Model<<%= Name %>Schema>,
   ) {
-    super(<%= lower %>Model);
+    super(<%= camelCase %>Model);
   }
 }

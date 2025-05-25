@@ -1,0 +1,13 @@
+import { <%= Name %>Service } from '@domain/<%= kebab %>/services';
+import { <%= Name %>Schema } from '@infrastructure/mongoose/schemas';
+import { Injectable } from '@nestjs/common';
+import { IQueryGetListInputType } from '@shared/interfaces';
+
+@Injectable()
+export class Fetch<%= Name %>UseCase {
+  constructor(private readonly <%= camelCase %>Service: <%= Name %>Service) {}
+
+  async execute(queryInput: IQueryGetListInputType<<%= Name %>Schema>) {
+    return this.<%= camelCase %>Service.fetch(queryInput);
+  }
+}

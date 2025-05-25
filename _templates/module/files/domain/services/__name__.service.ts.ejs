@@ -1,0 +1,14 @@
+import { MongooseBaseService } from '@infrastructure/mongoose';
+import { <%= Name %>Schema } from '@infrastructure/mongoose/schemas';
+import { Inject, Injectable } from '@nestjs/common';
+import { A<%= Name %>Repository } from '../repositories/<%= kebab %>.repository.abstract';
+
+@Injectable()
+export class <%= Name %>Service extends MongooseBaseService<<%= Name %>Schema> {
+  constructor(
+    @Inject(A<%= Name %>Repository)
+    private readonly <%= camelCase %>Repository: A<%= Name %>Repository,
+  ) {
+    super(<%= camelCase %>Repository);
+  }
+}

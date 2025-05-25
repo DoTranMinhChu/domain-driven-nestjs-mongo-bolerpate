@@ -1,7 +1,7 @@
 import {
   UserLoginInputType,
   UserRegistrationInputType,
-} from '@presentation/graphql/input-types/users';
+} from '@presentation/graphql/input-types/user';
 import { UserLoginObjectType } from '@presentation/graphql/object-types';
 import { BadRequestException } from '@shared/exceptions/bad-request.exception';
 import { EXCEPTION } from '@shared/exceptions/exception';

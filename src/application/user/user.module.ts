@@ -1,19 +1,20 @@
 import { DomainUserModule } from '@domain/user/user.module';
-import { Module } from '@nestjs/common';
-import { UserLoginUseCase } from './use-cases/user-login.use-case';
-import { UserRegistrationUseCase } from './use-cases/user-registration.user-case';
-import { FetchUsersUseCase } from './use-cases/fetch-users.use-case';
+
 import {
   CreateUserUseCase,
   DeleteOneUserByConditionUseCase,
+  FetchUserUseCase,
   GetOneUserByConditionUseCase,
   UpdateOneUserByConditionUseCase,
+  UserLoginUseCase,
+  UserRegistrationUseCase,
 } from './use-cases';
+import { Module } from '@nestjs/common';
 
 @Module({
   imports: [DomainUserModule],
   providers: [
-    FetchUsersUseCase,
+    FetchUserUseCase,
     GetOneUserByConditionUseCase,
     CreateUserUseCase,
     UpdateOneUserByConditionUseCase,
@@ -23,7 +24,7 @@ import {
   ],
   exports: [
     DomainUserModule,
-    FetchUsersUseCase,
+    FetchUserUseCase,
     GetOneUserByConditionUseCase,
     CreateUserUseCase,
     UpdateOneUserByConditionUseCase,

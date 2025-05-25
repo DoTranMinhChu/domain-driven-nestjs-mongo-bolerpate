@@ -1,0 +1,8 @@
+import { <%= Name %>Schema } from '@infrastructure/mongoose/schemas';
+import { ABaseValueObject } from '@shared/value-objects';
+
+export class <%= Name %>ValueObject extends ABaseValueObject<<%= Name %>Schema> {
+  protected override validate(_value: <%= Name %>Schema): void {
+    // TODO: Add logic invariant for <%= Name %>
+  }
+}

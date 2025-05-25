@@ -1,0 +1,15 @@
+import { Field, ObjectType } from '@nestjs/graphql';
+import { MongooseBaseObjectType } from '@infrastructure/mongoose/mongoose-base';
+import { PaginateDataObjectType } from '..';
+import { Mixed } from '@presentation/graphql/scalar-types';
+
+@ObjectType()
+export class <%= Name %>ObjectType extends MongooseBaseObjectType {
+  @Field(() => String)
+  name!: string;
+}
+
+@ObjectType()
+export class <%= Name %>PaginateObjectType extends PaginateDataObjectType(
+  <%= Name %>ObjectType,
+) {}

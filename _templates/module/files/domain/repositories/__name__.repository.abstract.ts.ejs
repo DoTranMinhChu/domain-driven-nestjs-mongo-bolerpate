@@ -1,0 +1,5 @@
+import { AMongooseBaseRepository } from '@infrastructure/mongoose';
+import { <%= Name %>Schema } from '@infrastructure/mongoose/schemas';
+
+export abstract class A<%= Name %>Repository extends AMongooseBaseRepository<<%= Name %>Schema> {
+}

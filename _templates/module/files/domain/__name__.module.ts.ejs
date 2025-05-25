@@ -1,0 +1,23 @@
+import { <%= Name %>Repository } from '@infrastructure/mongoose/repositories';
+import {
+  <%= Name %>Schema,
+  <%= Name %>SchemaFactory,
+} from '@infrastructure/mongoose/schemas';
+import { MongooseModule } from '@nestjs/mongoose';
+import { Module } from '@nestjs/common';
+import { A<%= Name %>Repository } from './repositories';
+import { <%= Name %>Service } from './services';
+
+@Module({
+  imports: [
+    MongooseModule.forFeature([
+      { name: <%= Name %>Schema.name, schema: <%= Name %>SchemaFactory },
+    ]),
+  ],
+  providers: [
+    { provide: A<%= Name %>Repository, useClass: <%= Name %>Repository },
+    <%= Name %>Service,
+  ],
+  exports: [A<%= Name %>Repository, <%= Name %>Service],
+})
+export class Domain<%= Name %>Module {}

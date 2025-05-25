@@ -1,0 +1,35 @@
+# _templates/module/files/presentation/graphql/graphql.module.patch.ejs
+
+---
+modify: src/presentation/graphql/graphql.module.ts
+# 1) Append the new Resolver to the barrel import from './resolvers'
+replace:
+  pattern: /import \{([\s\S]*?)\} from '\.\/resolvers';/
+  with: |
+    import { $1, <%= Name %>Resolver } from './resolvers';
+
+---
+modify: src/presentation/graphql/graphql.module.ts
+# 2) Append the new Application Module to the barrel import from '@application'
+replace:
+  pattern: /import \{([\s\S]*?)\} from '@application';/
+  with: |
+    import { $1, <%= Name %>Module } from '@application';
+
+---
+modify: src/presentation/graphql/graphql.module.ts
+# 3) Insert the new Module into the @Module imports array
+inject:
+  after: /imports:\s*\[/
+  indent: 4
+  content: "<%= Name %>Module,"
+
+---
+modify: src/presentation/graphql/graphql.module.ts
+# 4) No need to inject a separate Resolver here since it's picked up via barrel import
+# (Module.providers can remain as-is or also use barrel if desired)
+modify: src/presentation/graphql/graphql.module.ts
+inject:
+  after: /providers:\s*\[/
+  indent: 4
+  content: "<%= Name %>Resolver,"

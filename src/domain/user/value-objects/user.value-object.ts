@@ -1,6 +1,6 @@
+import { UserSchema } from '@infrastructure/mongoose/schemas';
 import { ABaseValueObject } from '@shared/value-objects';
-import { UserEntity } from '../entities';
 
-export class UserValueObject extends ABaseValueObject<UserEntity> {
-  protected override validate(_value: UserEntity): void {}
+export class UserValueObject extends ABaseValueObject<UserSchema> {
+  protected override validate(_value: UserSchema): void {}
 }

@@ -1,0 +1,13 @@
+import { <%= Name %>Service } from '@domain/<%= kebab %>/services';
+import { <%= Name %>Schema } from '@infrastructure/mongoose/schemas';
+import { Injectable } from '@nestjs/common';
+import { FilterQuery } from 'mongoose';
+
+@Injectable()
+export class DeleteOne<%= Name %>ByConditionUseCase {
+  constructor(private readonly <%= camelCase %>Service: <%= Name %>Service) {}
+
+  async execute(condition: FilterQuery<<%= Name %>Schema>) {
+    return this.<%= camelCase %>Service.softDeleteByCondition(condition);
+  }
+}

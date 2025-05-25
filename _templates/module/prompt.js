@@ -6,7 +6,7 @@ module.exports = [
   },
   {
     type: 'multiselect',
-    name: 'presentations',
+    name: 'presentation',
     message: 'Muốn generate loại presentation?',
     choices: [
       {

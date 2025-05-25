@@ -1,0 +1,16 @@
+import { <%= Name %>SService } from '@domain/<%= kebab %>/services';
+import { <%= Name %>SSchema } from '@infrastructure/mongoose/schemas';
+import { Injectable } from '@nestjs/common';
+import { FilterQuery, UpdateQuery } from 'mongoose';
+
+@Injectable()
+export class UpdateOne<%= Name %>SByConditionUseCase {
+  constructor(private readonly <%= camelCase %>Service: <%= Name %>SService) {}
+
+  async execute(
+    condition: FilterQuery<<%= Name %>SSchema>,
+    updateData: UpdateQuery<<%= Name %>SSchema>,
+  ) {
+    return this.<%= camelCase %>Service.updateOneWithCondition(condition, updateData);
+  }
+}
