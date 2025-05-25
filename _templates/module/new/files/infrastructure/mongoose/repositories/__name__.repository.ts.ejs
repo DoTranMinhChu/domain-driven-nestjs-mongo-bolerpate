@@ -1,5 +1,16 @@
+<%_
+  const toKebabCase = (str) =>
+    str
+      .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+      .replace(/([A-Z])([A-Z][a-z])/g, '$1-$2')
+      .toLowerCase();
+
+  const Name = name.charAt(0).toUpperCase() + name.slice(1);
+  const kebab = toKebabCase(name); 
+  const camelCase = name.charAt(0).toLowerCase() + name.slice(1)
+_%>
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose/dist';
+import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { MongooseBaseRepository } from '../mongoose-base';
 import { <%= Name %>Schema } from '../schemas';

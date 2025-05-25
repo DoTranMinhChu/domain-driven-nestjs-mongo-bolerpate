@@ -12,7 +12,7 @@ to: .
       .toLowerCase();
 
   const Name = name.charAt(0).toUpperCase() + name.slice(1);
-  const kebab = toKebabCase(name);  
+  const kebab = toKebabCase(name); 
   const camelCase = name.charAt(0).toLowerCase() + name.slice(1)
 
   // Ensure folders exist
