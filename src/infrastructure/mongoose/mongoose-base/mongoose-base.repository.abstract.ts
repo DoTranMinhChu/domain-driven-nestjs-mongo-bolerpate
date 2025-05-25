@@ -14,8 +14,7 @@ import { IPaginatedResult, MDoc, IFindAllResult } from '../interfaces';
 
 export abstract class AMongooseBaseRepository<T> {
   abstract fetch(
-    queryInput?: IQueryGetListInputType,
-    select?: string,
+    queryInput?: IQueryGetListInputType<T>,
   ): Promise<IPaginatedResult<T>>;
 
   abstract create(dto: Partial<T>): Promise<MDoc<T>>;
@@ -44,19 +43,25 @@ export abstract class AMongooseBaseRepository<T> {
     options?: QueryOptions<T>,
   ): Promise<MDoc<T> | null>;
 
+  abstract updateOneWithCondition(
+    filter: FilterQuery<T>,
+    update: UpdateQuery<T>,
+    options?: QueryOptions<T>,
+  ): Promise<MDoc<T> | null>;
+
   abstract updateMany(
     filter: FilterQuery<T> | undefined,
     update: UpdateQuery<T>,
     options?: MongooseUpdateOptions<T>,
   ): Promise<mongoose.UpdateWriteOpResult>;
 
-  abstract softDelete(
-    id: string | Types.ObjectId,
+  abstract softDeleteByCondition(
+    filter: FilterQuery<T>,
     options?: QueryOptions<T> | null,
   ): Promise<T | null>;
 
-  abstract permanentlyDelete(
-    id: string | Types.ObjectId,
+  abstract permanentlyDeleteByCondition(
+    filter: FilterQuery<T>,
     options?: QueryOptions<T> | null,
   ): Promise<MDoc<T> | null>;
 

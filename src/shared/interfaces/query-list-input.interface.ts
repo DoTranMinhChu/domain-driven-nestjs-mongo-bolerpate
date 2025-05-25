@@ -1,13 +1,14 @@
-export interface IQueryGetListInputType {
+import { FilterQuery, SortOrder } from 'mongoose';
+export interface IQueryGetListInputType<T extends any> {
   limit?: number;
 
   offset?: number;
 
   page?: number;
 
-  order?: any;
+  order?: { [key: string]: SortOrder };
 
-  filter?: any;
+  filter?: FilterQuery<T>;
 
   search?: string;
 }

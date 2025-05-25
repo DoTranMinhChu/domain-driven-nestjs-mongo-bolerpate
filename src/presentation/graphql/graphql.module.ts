@@ -28,10 +28,10 @@ import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin
       playground: false,
       plugins: [ApolloServerPluginLandingPageLocalDefault()],
     }),
-    ApplicationUserModule,
     JwtModule,
     ConfigModule,
     EnvironmentConfig,
+    ApplicationUserModule,
   ],
   controllers: [],
   providers: [

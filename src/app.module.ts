@@ -4,7 +4,6 @@ import { AppService } from './app.service';
 import { MongooseConfig } from '@infrastructure/mongoose/mongoose.config';
 import { EnvironmentConfig } from '@infrastructure/environment/environment.config';
 import { GraphqlModule } from '@presentation/graphql/graphql.module';
-
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { AllExceptionsFilter } from '@shared/filters';
 import { AuthGuard, AccountTypesGuard } from '@shared/guards';

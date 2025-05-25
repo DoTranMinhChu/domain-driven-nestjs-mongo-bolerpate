@@ -6,7 +6,7 @@ import { MongooseBaseSchema } from '../mongoose-base';
   collection: 'user',
 })
 export class UserSchema extends MongooseBaseSchema {
-  @Prop({ text: true })
+  @Prop({})
   name!: string;
 
   @Prop({})
@@ -23,4 +23,4 @@ export class UserSchema extends MongooseBaseSchema {
 }
 
 export const UserSchemaFactory = SchemaFactory.createForClass(UserSchema);
-// UserSchemaFactory.index({ name: 'text' }, { weights: { name: 1 } });
+UserSchemaFactory.index({ name: 'text' }, { weights: { name: 1 } });

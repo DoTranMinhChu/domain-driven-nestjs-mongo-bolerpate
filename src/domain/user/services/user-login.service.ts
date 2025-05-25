@@ -2,7 +2,7 @@ import {
   UserLoginInputType,
   UserRegistrationInputType,
 } from '@presentation/graphql/input-types/users';
-import { LoginUserObjectType } from '@presentation/graphql/object-types';
+import { UserLoginObjectType } from '@presentation/graphql/object-types';
 import { BadRequestException } from '@shared/exceptions/bad-request.exception';
 import { EXCEPTION } from '@shared/exceptions/exception';
 import { BcryptUtil } from '@shared/utils/bcrypt.util';
@@ -24,7 +24,7 @@ export class UserLoginService {
   ) {}
   async userLogin(
     userLoginInput: UserLoginInputType,
-  ): Promise<LoginUserObjectType> {
+  ): Promise<UserLoginObjectType> {
     const { username, password } = userLoginInput;
     if (!username || !password) {
       throw new BadRequestException();

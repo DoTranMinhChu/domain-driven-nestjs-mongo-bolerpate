@@ -10,6 +10,7 @@ import { AUserRepository } from './repositories/user.repository.abstract';
 import { UserService } from './services/user.service';
 import { UserLoginService } from './services/user-login.service';
 import { AuthService } from '@domain/auth/services/auth.service';
+import { UserRegistrationService } from './services';
 
 @Module({
   imports: [
@@ -18,14 +19,18 @@ import { AuthService } from '@domain/auth/services/auth.service';
     ]),
   ],
   providers: [
-    // đây là token (abstract) map xuống class thực thi
     { provide: AUserRepository, useClass: UserRepository },
-    // những provider khác
     UserService,
     UserLoginService,
+    UserRegistrationService,
     AuthService,
   ],
-  // EXPORT tất cả provider mà module ngoài có thể cần
-  exports: [AUserRepository, UserService, UserLoginService, AuthService],
+  exports: [
+    AUserRepository,
+    UserService,
+    UserLoginService,
+    UserRegistrationService,
+    AuthService,
+  ],
 })
 export class DomainUserModule {}

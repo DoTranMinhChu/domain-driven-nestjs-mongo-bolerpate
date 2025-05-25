@@ -1,5 +1,5 @@
 import { UserRegistrationInputType } from '@presentation/graphql/input-types/users';
-import { LoginUserObjectType } from '@presentation/graphql/object-types';
+import { UserLoginObjectType } from '@presentation/graphql/object-types';
 import { BadRequestException } from '@shared/exceptions/bad-request.exception';
 import { EXCEPTION } from '@shared/exceptions/exception';
 import { BcryptUtil } from '@shared/utils/bcrypt.util';
@@ -16,7 +16,7 @@ export class UserRegistrationService {
   ) {}
   async userRegistration(
     registerRequest: UserRegistrationInputType,
-  ): Promise<LoginUserObjectType> {
+  ): Promise<UserLoginObjectType> {
     const { password } = registerRequest;
     const existedUser = await this.userRepository.findByUsername(
       registerRequest.username,

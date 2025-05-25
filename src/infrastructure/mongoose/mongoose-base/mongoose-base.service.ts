@@ -18,18 +18,19 @@ import { IQueryGetListInputType } from '@shared/interfaces/query-list-input.inte
 
 export class MongooseBaseService<T extends MongooseBaseObjectType> {
   constructor(private readonly repository: AMongooseBaseRepository<T>) {}
-  async fetch(query: IQueryGetListInputType) {
+  async fetch(query: IQueryGetListInputType<T>) {
     return await this.repository.fetch(query);
   }
-  async create(createData: T | any) {
+  async create(createData: Partial<T | any>) {
     return await this.repository.create(createData);
   }
 
   async findAll(
-    filter?: object,
-    options?: object,
+    filter?: FilterQuery<T>,
+    projection?: ProjectionType<T> | null | undefined,
+    options?: QueryOptions<T> | null | undefined,
   ): Promise<FindAllResponse<T | FlattenMaps<T>>> {
-    return await this.repository.findAll(filter, options);
+    return await this.repository.findAll(filter, projection, options);
   }
   async findOne(
     filter?: FilterQuery<T>,
@@ -58,7 +59,17 @@ export class MongooseBaseService<T extends MongooseBaseObjectType> {
   async updateOneById(id: string | Types.ObjectId, updateData: UpdateQuery<T>) {
     return await this.repository.updateOneById(id, updateData);
   }
-
+  async updateOneWithCondition(
+    filter: FilterQuery<T> = {},
+    updateData: UpdateQuery<T>,
+    options?: QueryOptions<T>,
+  ) {
+    return await this.repository.updateOneWithCondition(
+      filter,
+      updateData,
+      options,
+    );
+  }
   async updateMany(
     filter: FilterQuery<T> = {},
     update: UpdateQuery<T>,
@@ -67,7 +78,17 @@ export class MongooseBaseService<T extends MongooseBaseObjectType> {
     return await this.repository.updateMany(filter, update, options);
   }
 
-  async remove(id: string | Types.ObjectId) {
-    return await this.repository.softDelete(id);
+  async softDeleteByCondition(
+    filter: FilterQuery<T>,
+    options?: QueryOptions<T> | null | undefined,
+  ) {
+    return await this.repository.softDeleteByCondition(filter, options);
+  }
+
+  async permanentlyDeleteByCondition(
+    filter: FilterQuery<T>,
+    options?: QueryOptions<T> | null | undefined,
+  ) {
+    return await this.repository.permanentlyDeleteByCondition(filter, options);
   }
 }

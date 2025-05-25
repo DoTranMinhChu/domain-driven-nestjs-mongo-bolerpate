@@ -13,6 +13,7 @@ import {
 } from './mongoose-base.schema';
 import _ from 'lodash';
 import { AMongooseBaseRepository } from './mongoose-base.repository.abstract';
+import { IQueryGetListInputType } from '@shared/interfaces/query-list-input.interface';
 
 export class MongooseBaseRepository<T extends MongooseBaseSchema>
   implements AMongooseBaseRepository<T>
@@ -20,92 +21,83 @@ export class MongooseBaseRepository<T extends MongooseBaseSchema>
   protected constructor(private readonly model: Model<T>) {
     this.model = model;
   }
-  async fetch(
-    queryInput: {
-      limit?: number;
-      offset?: number;
-      page?: number;
-      order?:
-        | string
-        | { [key: string]: mongoose.SortOrder | { $meta: any } }
-        | [string, mongoose.SortOrder][]
-        | null
-        | undefined;
-      filter?: FilterQuery<T>;
-      search?: string;
-    } = {},
-    select?: string,
-  ) {
+  async fetch(queryInput?: IQueryGetListInputType<T>, select?: string) {
     queryInput = { ...queryInput };
     const limit = queryInput.limit || 50;
     const skip =
       queryInput.offset || ((queryInput?.page || 1) - 1) * limit || 0;
-    const order = queryInput.order;
+    let order = queryInput.order ?? {};
     const search = queryInput.search;
-    const query = this.model.find();
 
+    // 2. Base query và collation cho Tiếng Việt (ignore dấu, ignore case)
+    // const collation = { locale: 'vi', strength: 1 };
+    // let mongoQuery = this.model.find().collation(collation);
+
+    let mongoQuery = this.model.find();
+    // 3. Search
     if (search) {
+      // Lấy danh sách text-indexed fields
+      const textIndexes = this.model.schema
+        .indexes()
+        .filter(([fields]) => Object.values(fields).includes('text'))
+        .map(([fields]) => Object.keys(fields))
+        .flat();
+
       if (search.includes(' ')) {
-        _.set(queryInput, 'filter.$text.$search', search);
-        query.select({ _score: { $meta: 'textScore' } });
-        query.sort({ _score: { $meta: 'textScore' } });
-      } else {
-        const textSearchIndex = this.model.schema
-          .indexes()
-          .filter((c: any) => _.values(c[0]!).some((d: any) => d == 'text'));
-        if (textSearchIndex.length > 0) {
-          const or: any[] = [];
-          textSearchIndex.forEach((index) => {
-            Object.keys(index[0]!).forEach((key) => {
-              or.push({
-                [key]: {
-                  $regex: search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
-                  $options: 'i',
-                },
-              });
-            });
-          });
-          _.set(queryInput, 'filter.$or', or);
-        }
+        // Nhiều từ → dùng text search
+        mongoQuery = mongoQuery
+          .find({ $text: { $search: search } })
+          .sort({ score: { $meta: 'textScore' } })
+          .select({ score: { $meta: 'textScore' } });
+      } else if (textIndexes.length) {
+        // 1 từ → regex trên các field có text-index
+        const orFilters: FilterQuery<T>[] = textIndexes.map((field) => {
+          // build dynamic object
+          const clause = { [field]: { $regex: search, $options: 'i' } };
+          // TS vẫn chưa biết chắc đây là FilterQuery<T>, nên ta assert
+          return clause as FilterQuery<T>;
+        });
+        mongoQuery = mongoQuery.find({ $or: orFilters });
       }
     }
 
-    if (order) {
-      query.sort(order);
-    }
+    // 4. Filter thuần túy (filter object)
     if (queryInput.filter) {
-      const filter = JSON.parse(
-        JSON.stringify(queryInput.filter).replace(
-          /\"(\_\_)(\w+)\"\:/g,
-          `"$$$2":`,
-        ),
-      );
-      query.setQuery({ ...filter });
+      mongoQuery = mongoQuery.find(queryInput.filter);
     }
 
-    query.limit(limit);
-    query.skip(skip);
+    // 5. Sort (order) — mặc định giảm dần theo createdAt và _id
 
+    if (!('_id' in order)) {
+      _.set(order, 'createdAt', _.get(order, 'createdAt') || -1);
+      _.set(order, '_id', _.get(order, '_id') || -1);
+    }
+    mongoQuery = mongoQuery.sort(order as any);
+
+    // 6. Projection (select)
     if (select) {
-      query.select(select);
+      mongoQuery = mongoQuery.select(select);
     }
 
-    return await Promise.all([
-      query.exec().then((res) => res),
-      this.model.countDocuments(queryInput.filter).then((res) => res),
-      ,
-    ]).then((res) => {
-      return {
-        data: res[0],
-        total: res[1],
-        pagination: {
-          page: queryInput.page || 1,
-          limit: limit,
-          offset: skip,
-          total: res[1],
-        },
-      };
-    });
+    // 7. Tính total (không limit/skip nhưng cùng filter/search)
+    // const countQuery = this.model.find().collation(collation).merge(mongoQuery);
+    const countQuery = this.model.find().merge(mongoQuery);
+    const total = await countQuery.countDocuments();
+
+    // 8. Áp limit & skip và chạy query
+    const data = await mongoQuery.limit(limit).skip(skip).exec();
+
+    // 9. Trả kết quả
+    return {
+      data,
+      total,
+      pagination: {
+        page: queryInput.page ?? 1,
+        limit,
+        offset: skip,
+        total,
+      },
+    };
   }
   async create(dto: T | any) {
     return await this.model.create(dto);
@@ -161,6 +153,15 @@ export class MongooseBaseRepository<T extends MongooseBaseSchema>
     } as FilterQuery<T>;
     return await this.model.findOneAndUpdate(filter, update, options);
   }
+  async updateOneWithCondition(
+    filter: FilterQuery<T> = {},
+    update: UpdateQuery<T>,
+    options?: QueryOptions<T>,
+  ) {
+    filter.deletedAt = null;
+    return await this.model.findOneAndUpdate(filter, update, options);
+  }
+
   async updateMany(
     filter: FilterQuery<T> = {},
     update: UpdateQuery<T>,
@@ -169,12 +170,12 @@ export class MongooseBaseRepository<T extends MongooseBaseSchema>
     return await this.model.updateMany(filter, update, options);
   }
 
-  async softDelete(
-    id: string | Types.ObjectId,
+  async softDeleteByCondition(
+    filter: FilterQuery<T>,
     options?: QueryOptions<T> | null,
-  ) {
-    return await this.model.findByIdAndUpdate<T>(
-      id,
+  ): Promise<T | null> {
+    return await this.model.findOneAndUpdate<T>(
+      filter,
       {
         deletedAt: new Date(),
       },
@@ -182,11 +183,11 @@ export class MongooseBaseRepository<T extends MongooseBaseSchema>
     );
   }
 
-  async permanentlyDelete(
-    id: string | Types.ObjectId,
+  async permanentlyDeleteByCondition(
+    filter: FilterQuery<T>,
     options?: QueryOptions<T> | null,
   ) {
-    return await this.model.findByIdAndDelete(id, options);
+    return await this.model.findOneAndDelete(filter, options);
   }
 
   async count(
