@@ -3,8 +3,8 @@ to: .
 ---
 
 <%_ 
-  const fs = require('fs');
-  const path = require('path');
+  # const fs = require('fs');
+  # const path = require('path');
   const toKebabCase = (str) =>
     str
       .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
@@ -15,24 +15,24 @@ to: .
   const kebab = toKebabCase(name); 
   const camelCase = name.charAt(0).toLowerCase() + name.slice(1)
 
-  // Ensure folders exist
-  function ensureDir(dir) {
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-  }
+  # // Ensure folders exist
+  # function ensureDir(dir) {
+  #   if (!fs.existsSync(dir)) {
+  #     fs.mkdirSync(dir, { recursive: true });
+  #   }
+  # }
 
-  ensureDir(`src/domain/${kebab}`);
-  ensureDir(`src/application/${kebab}`);
-  ensureDir(`src/infrastructure/${kebab}`);
-  if (presentations.includes('graphql')) {
-    ensureDir('src/presentation/graphql/resolvers');
-    ensureDir('src/presentation/graphql/object-types');
-    ensureDir('src/presentation/graphql/input-types');
-  }
-  if (presentations.includes('rest')) {
-    ensureDir('src/presentation/rest/controllers');
-  }
+  # ensureDir(`src/domain/${kebab}`);
+  # ensureDir(`src/application/${kebab}`);
+  # ensureDir(`src/infrastructure/${kebab}`);
+  # if (presentations.includes('graphql')) {
+  #   ensureDir('src/presentation/graphql/resolvers');
+  #   ensureDir('src/presentation/graphql/object-types');
+  #   ensureDir('src/presentation/graphql/input-types');
+  # }
+  # if (presentations.includes('rest')) {
+  #   ensureDir('src/presentation/rest/controllers');
+  # }
 _%>
 
 <%_ // === INFRASTRUCTURE LAYER === _%>
