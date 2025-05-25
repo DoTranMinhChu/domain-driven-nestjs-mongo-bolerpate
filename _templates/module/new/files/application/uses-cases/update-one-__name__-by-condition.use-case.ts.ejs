@@ -1,11 +1,22 @@
-import { <%= Name %>SService } from '@domain/<%= kebab %>/services';
-import { <%= Name %>SSchema } from '@infrastructure/mongoose/schemas';
+<%_
+  const toKebabCase = (str) =>
+    str
+      .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+      .replace(/([A-Z])([A-Z][a-z])/g, '$1-$2')
+      .toLowerCase();
+
+  const Name = name.charAt(0).toUpperCase() + name.slice(1);
+  const kebab = toKebabCase(name); 
+  const camelCase = name.charAt(0).toLowerCase() + name.slice(1)
+_%>
+import { <%= Name %>Service } from '@domain/<%= kebab %>/services';
+import { <%= Name %>Schema } from '@infrastructure/mongoose/schemas';
 import { Injectable } from '@nestjs/common';
 import { FilterQuery, UpdateQuery } from 'mongoose';
 
 @Injectable()
 export class UpdateOne<%= Name %>SByConditionUseCase {
-  constructor(private readonly <%= camelCase %>Service: <%= Name %>SService) {}
+  constructor(private readonly <%= camelCase %>Service: <%= Name %>Service) {}
 
   async execute(
     condition: FilterQuery<<%= Name %>SSchema>,

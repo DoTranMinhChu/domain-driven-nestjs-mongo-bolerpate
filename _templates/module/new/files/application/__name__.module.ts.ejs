@@ -14,7 +14,7 @@ import { Module } from '@nestjs/common';
 import {
   Create<%= Name %>UseCase,
   DeleteOne<%= Name %>ByConditionUseCase,
-  Fetch<%= Name %>sUseCase,
+  Fetch<%= Name %>UseCase,
   GetOne<%= Name %>ByConditionUseCase,
   UpdateOne<%= Name %>ByConditionUseCase,
 } from './use-cases';
@@ -23,7 +23,7 @@ import {
 @Module({
   imports: [Domain<%= Name %>Module],
   providers: [
-    Fetch<%= Name %>sUseCase,
+    Fetch<%= Name %>UseCase,
     GetOne<%= Name %>ByConditionUseCase,
     Create<%= Name %>UseCase,
     UpdateOne<%= Name %>ByConditionUseCase,
@@ -31,7 +31,7 @@ import {
   ],
   exports: [
     Domain<%= Name %>Module,
-    Fetch<%= Name %>sUseCase,
+    Fetch<%= Name %>UseCase,
     GetOne<%= Name %>ByConditionUseCase,
     Create<%= Name %>UseCase,
     UpdateOne<%= Name %>ByConditionUseCase,
