@@ -17,9 +17,6 @@ export class UserSchema extends MongooseBaseSchema {
 
   @Prop()
   username!: string;
-
-  // @Field((_type: any) => [RefreshTokenUserData])
-  // refreshTokens!: RefreshTokenUserData[];
 }
 
 export const UserSchemaFactory = SchemaFactory.createForClass(UserSchema);

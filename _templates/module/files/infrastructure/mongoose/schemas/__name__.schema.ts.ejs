@@ -1,0 +1,12 @@
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document } from 'mongoose';
+
+@Schema({ timestamps: true, collection: '<%= lower %>' })
+export class <%= Name %>Schema extends Document {
+  @Prop({})
+  name!: string;
+  // TODO: thêm props
+}
+
+export const <%= Name %>SchemaFactory = SchemaFactory.createForClass(<%= Name %>Schema);
+<%= Name %>SchemaFactory.index({ name: 'text' }, { weights: { name: 1 } });
