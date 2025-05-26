@@ -14,8 +14,8 @@ import { ConfigModule } from '@nestjs/config';
 import { ApolloDriverConfig, ApolloDriver } from '@nestjs/apollo';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
-import { UserResolver } from './resolvers';
-import { ApplicationUserModule } from '@application';
+import { PostResolver, UserResolver } from './resolvers';
+import { ApplicationPostModule, ApplicationUserModule } from '@application';
 
 @Module({
   imports: [
@@ -29,6 +29,7 @@ import { ApplicationUserModule } from '@application';
     JwtModule,
     ConfigModule,
     EnvironmentConfig,
+    ApplicationPostModule,
     ApplicationUserModule,
   ],
   controllers: [],
@@ -50,6 +51,7 @@ import { ApplicationUserModule } from '@application';
       useClass: AccountTypesGuard,
     },
     GraphqlLoggingPlugin,
+    PostResolver,
     UserResolver,
   ],
 })
