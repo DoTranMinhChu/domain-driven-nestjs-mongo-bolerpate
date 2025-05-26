@@ -1,1 +1,1 @@
-export * from './user.value-object';
+export * from './post.value-object';
