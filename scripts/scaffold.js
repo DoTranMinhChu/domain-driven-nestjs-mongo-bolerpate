@@ -120,7 +120,7 @@ program
 
     /* ---- infrastructure/mongoose/schemas/__name__.schema.ts ---*/
     await fs.ensureDir(paths.infraSchemaDir);
-    await fs.writeFile(
+    writeNewFile(
       path.join(paths.infraSchemaDir, `${files.fileSchema}.ts`),
       infraSchemaTs(featureData),
     );
@@ -131,7 +131,7 @@ program
     /* ---- infrastructure/mongoose/repositories/__name__.repository.ts ---*/
     // Repositories
     await fs.ensureDir(paths.infraRepoDir);
-    await fs.writeFile(
+    writeNewFile(
       path.join(paths.infraRepoDir, `${files.fileRepo}.ts`),
       infraRepositoryTs(featureData),
     );
@@ -144,37 +144,37 @@ program
 
     /* ---- domain/__name__/repositories ---*/
     await fs.ensureDir(paths.domainRepoDir);
-    await fs.writeFile(
+    writeNewFile(
       path.join(paths.domainRepoDir, `${files.fileARepo}.ts`),
       domainARepositoryTs(featureData),
     );
-    await fs.writeFile(
+    writeNewFile(
       path.join(paths.domainRepoDir, `${files.index}.ts`),
       writeIndexTs([files.fileARepo]),
     );
     /* ---- domain/__name__/services ---*/
     await fs.ensureDir(paths.domainServiceDir);
-    await fs.writeFile(
+    writeNewFile(
       path.join(paths.domainServiceDir, `${files.fileService}.ts`),
       domainServiceTs(featureData),
     );
-    await fs.writeFile(
+    writeNewFile(
       path.join(paths.domainServiceDir, `${files.index}.ts`),
       writeIndexTs([files.fileService]),
     );
     /* ---- domain/__name__/value-objects ---*/
     await fs.ensureDir(paths.domainValueObjectDir);
-    await fs.writeFile(
+    writeNewFile(
       path.join(paths.domainValueObjectDir, `${files.fileValueObject}.ts`),
       domainValueObjectTs(featureData),
     );
-    await fs.writeFile(
+    writeNewFile(
       path.join(paths.domainValueObjectDir, `${files.index}.ts`),
       writeIndexTs([files.fileValueObject]),
     );
 
     /* ---- domain/__name__/__name__.module.ts ---*/
-    await fs.writeFile(
+    writeNewFile(
       path.join(paths.domainDir, `${files.fileModule}.ts`),
       domainModuleTs(featureData),
     );
@@ -183,28 +183,28 @@ program
     /* ---- application/__name__/use-cases/action__name__.use-case.ts ---*/
     await fs.ensureDir(paths.appUseCasesDir);
 
-    await fs.writeFile(
+    writeNewFile(
       path.join(paths.appUseCasesDir, `${files.fileCreateUseCase}.ts`),
       createUseCaseTs(featureData),
     );
-    await fs.writeFile(
+    writeNewFile(
       path.join(paths.appUseCasesDir, `${files.fileFetchUseCase}.ts`),
       fetchUseCaseTs(featureData),
     );
-    await fs.writeFile(
+    writeNewFile(
       path.join(paths.appUseCasesDir, `${files.fileGetOneUseCase}.ts`),
       getOneUseCaseTs(featureData),
     );
-    await fs.writeFile(
+    writeNewFile(
       path.join(paths.appUseCasesDir, `${files.fileUpdateOneUseCase}.ts`),
       updateOneUseCaseTs(featureData),
     );
-    await fs.writeFile(
+    writeNewFile(
       path.join(paths.appUseCasesDir, `${files.fileDeleteOneUseCase}.ts`),
       deleteOneUseCaseTs(featureData),
     );
 
-    await fs.writeFile(
+    writeNewFile(
       path.join(paths.appUseCasesDir, `${files.index}.ts`),
       writeIndexTs([
         files.fileCreateUseCase,
@@ -220,13 +220,13 @@ program
 
     /* ---- application/__name__/index.ts ---*/
     await fs.ensureDir(paths.appModuleDir);
-    await fs.writeFile(
+    writeNewFile(
       path.join(paths.appModuleDir, `${files.index}.ts`),
       writeIndexTs([files.fileModule, 'use-cases']),
     );
 
     /* ---- application/__name__/__name__.module.ts ---*/
-    await fs.writeFile(
+    writeNewFile(
       path.join(paths.appModuleDir, `${files.fileModule}.ts`),
       applicationModuleTs(featureData),
     );
@@ -235,21 +235,21 @@ program
 
     /* ---- presentation/graphql/input-types/__name__/Prefix__name__.input-type.ts ---*/
     await fs.ensureDir(paths.presentationGraphQLInputTypeDir);
-    await fs.writeFile(
+    writeNewFile(
       path.join(
         paths.presentationGraphQLInputTypeDir,
         `create-${featureKebab}.input-type.ts`,
       ),
       graphQLInputTypeTs('Create', featureData),
     );
-    await fs.writeFile(
+    writeNewFile(
       path.join(
         paths.presentationGraphQLInputTypeDir,
         `update-${featureKebab}.input-type.ts`,
       ),
       graphQLInputTypeTs('Update', featureData),
     );
-    await fs.writeFile(
+    writeNewFile(
       path.join(paths.presentationGraphQLInputTypeDir, `${files.index}.ts`),
       writeIndexTs([
         `create-${featureKebab}.input-type`,
@@ -264,14 +264,14 @@ program
     // Object Types
     /* ---- presentation/graphql/object-types/__name__/__name__.object-type.ts ---*/
     await fs.ensureDir(paths.presentationGraphQLObjectTypeDir);
-    await fs.writeFile(
+    writeNewFile(
       path.join(
         paths.presentationGraphQLObjectTypeDir,
         `${featureKebab}.object-type.ts`,
       ),
       graphQLObjectTypeTs(featureData),
     );
-    await fs.writeFile(
+    writeNewFile(
       path.join(paths.presentationGraphQLObjectTypeDir, `${files.index}.ts`),
       writeIndexTs([`${featureKebab}.object-type`]),
     );
@@ -283,7 +283,7 @@ program
 
     /* ---- presentation/graphql/resolvers/__name__.resolver.ts ---*/
     await fs.ensureDir(paths.presentationGraphQLResolversDir);
-    await fs.writeFile(
+    writeNewFile(
       path.join(
         paths.presentationGraphQLResolversDir,
         `${featureKebab}.resolver.ts`,
@@ -316,9 +316,14 @@ async function appendToIndex(indexPath, lines) {
       content += (content.endsWith('\n') ? '' : '\n') + line + '\n';
     }
   }
-  await fs.writeFile(indexPath, content);
+  fs.writeFileSync(indexPath, content);
+  console.log(`✔️  Updated at ${indexPath}`);
 }
 
+function writeNewFile(file, data) {
+  fs.writeFileSync(file, data);
+  console.log(`✔️  Created ${file}`);
+}
 /** ============= Templates =========== **/
 function writeIndexTs(paths) {
   return paths.map((path) => `export * from './${path}';`).join('\n');
