@@ -23,6 +23,7 @@ const {
   kebabCase,
   constantCase,
 } = require('change-case');
+const { Project, SyntaxKind, QuoteKind } = require('ts-morph');
 
 program
   .name('scaffold')
@@ -79,26 +80,38 @@ program
       ),
       appUseCasesDir: path.join(root, 'application', featureKebab, 'use-cases'),
       appModuleDir: path.join(root, 'application', featureKebab),
-      gqlInputDir: path.join(
+      presentationGraphQLDir: path.join(root, 'presentation', 'graphql'),
+      presentationGraphQLInputTypesDir: path.join(
+        root,
+        'presentation',
+        'graphql',
+        'input-types',
+      ),
+      presentationGraphQLInputTypeDir: path.join(
         root,
         'presentation',
         'graphql',
         'input-types',
         featureKebab,
       ),
-      gqlObjectDir: path.join(
+      presentationGraphQLObjectTypesDir: path.join(
+        root,
+        'presentation',
+        'graphql',
+        'object-types',
+      ),
+      presentationGraphQLObjectTypeDir: path.join(
         root,
         'presentation',
         'graphql',
         'object-types',
         featureKebab,
       ),
-      gqlResolverDir: path.join(root, 'presentation', 'graphql', 'resolvers'),
-      gqlModuleFile: path.join(
+      presentationGraphQLResolversDir: path.join(
         root,
         'presentation',
         'graphql',
-        'graphql.module.ts',
+        'resolvers',
       ),
     };
 
@@ -205,40 +218,81 @@ program
     await fs.ensureDir(paths.appModuleDir);
     await fs.writeFile(
       path.join(paths.appModuleDir, `${files.index}.ts`),
-      writeIndexTs([files.moduleFile, 'user-case']),
+      writeIndexTs([files.fileModule, 'use-cases']),
     );
 
-     /* ---- application/__name__/__name__.module.ts ---*/
+    /* ---- application/__name__/__name__.module.ts ---*/
     await fs.writeFile(
       path.join(paths.appModuleDir, `${files.fileModule}.ts`),
       applicationModuleTs(featureData),
     );
 
     // /********** 4. Presentation Layer (GraphQL) **********/
-    // // Input Types
-    // await fs.ensureDir(paths.gqlInputDir);
-    // await fs.writeFile(
-    //   path.join(paths.gqlInputDir, `create-${featureKebab}.input-type.ts`),
-    //   gqlInputTs('Create', featureData),
-    // );
-    // // Object Types
-    // await fs.ensureDir(paths.gqlObjectDir);
-    // await fs.writeFile(
-    //   path.join(paths.gqlObjectDir, `${featureKebab}.object-type.ts`),
-    //   gqlObjectTs(featureData),
-    // );
-    // // Resolver
-    // await fs.ensureDir(paths.gqlResolverDir);
-    // await fs.writeFile(
-    //   path.join(paths.gqlResolverDir, `${featureKebab}.resolver.ts`),
-    //   gqlResolverTs(featureData),
-    // );
-    // await appendToIndex(path.join(paths.gqlResolverDir, 'index.ts'), [
-    //   `export * from './${featureKebab}.resolver';`,
-    // ]);
+
+    /* ---- presentation/graphql/input-types/__name__/Prefix__name__.input-type.ts ---*/
+    await fs.ensureDir(paths.presentationGraphQLInputTypeDir);
+    await fs.writeFile(
+      path.join(
+        paths.presentationGraphQLInputTypeDir,
+        `create-${featureKebab}.input-type.ts`,
+      ),
+      graphQLInputTypeTs('Create', featureData),
+    );
+    await fs.writeFile(
+      path.join(
+        paths.presentationGraphQLInputTypeDir,
+        `update-${featureKebab}.input-type.ts`,
+      ),
+      graphQLInputTypeTs('Update', featureData),
+    );
+    await fs.writeFile(
+      path.join(paths.presentationGraphQLInputTypeDir, `${files.index}.ts`),
+      writeIndexTs([
+        `create-${featureKebab}.input-type`,
+        `update-${featureKebab}.input-type`,
+      ]),
+    );
+    await appendToIndex(
+      path.join(paths.presentationGraphQLInputTypesDir, `${files.index}.ts`),
+      [`export * from './${featureKebab}';`],
+    );
+
+    // Object Types
+    /* ---- presentation/graphql/object-types/__name__/__name__.object-type.ts ---*/
+    await fs.ensureDir(paths.presentationGraphQLObjectTypeDir);
+    await fs.writeFile(
+      path.join(
+        paths.presentationGraphQLObjectTypeDir,
+        `${featureKebab}.object-type.ts`,
+      ),
+      graphQLObjectTypeTs(featureData),
+    );
+    await fs.writeFile(
+      path.join(paths.presentationGraphQLObjectTypeDir, `${files.index}.ts`),
+      writeIndexTs([`${featureKebab}.object-type`]),
+    );
+    await appendToIndex(
+      path.join(paths.presentationGraphQLObjectTypesDir, `${files.index}.ts`),
+      [`export * from './${featureKebab}';`],
+    );
+    // Resolver
+
+    /* ---- presentation/graphql/resolvers/__name__.resolver.ts ---*/
+    await fs.ensureDir(paths.presentationGraphQLResolversDir);
+    await fs.writeFile(
+      path.join(
+        paths.presentationGraphQLResolversDir,
+        `${featureKebab}.resolver.ts`,
+      ),
+      graphQLResolverTs(featureData),
+    );
+    await appendToIndex(
+      path.join(paths.presentationGraphQLResolversDir, 'index.ts'),
+      [`export * from './${featureKebab}.resolver';`],
+    );
 
     // /********** 5. Update GraphqlModule **********/
-    // await updateGraphqlModule(paths.gqlModuleFile, featureData);
+    updateGraphqlModule(paths.gqlModuleFile, featureData);
 
     console.log(`✅ Scaffold for ${Feature} generated successfully.`);
   });
@@ -256,40 +310,6 @@ async function appendToIndex(indexPath, lines) {
     }
   }
   await fs.writeFile(indexPath, content);
-}
-
-/** Update GraphqlModule: add import, module and resolver registration **/
-async function updateGraphqlModule(moduleFile, Feature, feature) {
-  if (!(await fs.pathExists(moduleFile))) {
-    console.warn(`GraphqlModule not found at ${moduleFile}, skipping update.`);
-    return;
-  }
-  let text = await fs.readFile(moduleFile, 'utf-8');
-  const importModule = `import { ${moduleClass} } from '../../application/${featureKebab}/${featureKebab}.module';`;
-  const importResolver = `import { ${resolverClass} } from './resolvers/${featureKebab}.resolver';`;
-  // Add imports at top
-  if (!text.includes(importModule)) text = importModule + '\n' + text;
-  if (!text.includes(importResolver)) text = importResolver + '\n' + text;
-
-  // Insert into @Module imports array
-  text = text.replace(
-    /(@Module\s*\({[\s\S]*?imports:\s*\[)([\s\S]*?)(\])/m,
-    (_, start, middle, end) => {
-      const toAdd = `  ${moduleClass},`;
-      if (!middle.includes(moduleClass)) middle += '\n' + toAdd;
-      return start + middle + end;
-    },
-  );
-  // Insert into providers: []
-  text = text.replace(
-    /(providers:\s*\[)([\s\S]*?)(\])/m,
-    (_, start, middle, end) => {
-      const toAdd = `  ${resolverClass},`;
-      if (!middle.includes(resolverClass)) middle += '\n' + toAdd;
-      return start + middle + end;
-    },
-  );
-  await fs.writeFile(moduleFile, text);
 }
 
 /** ============= Templates =========== **/
@@ -473,17 +493,14 @@ function deleteOneUseCaseTs({ Feature, feature, featureKebab }) {
   return `import { ${Feature}Service } from '@domain/${featureKebab}/services';
 import { ${Feature}Schema } from '@infrastructure/mongoose/schemas';
 import { Injectable } from '@nestjs/common';
-import { FilterQuery, UpdateQuery } from 'mongoose';
+import { FilterQuery } from 'mongoose';
 
 @Injectable()
-export class UpdateOne${Feature}ByConditionUseCase {
+export class DeleteOne${Feature}ByConditionUseCase {
   constructor(private readonly ${feature}Service: ${Feature}Service) {}
 
-  async execute(
-    condition: FilterQuery<${Feature}Schema>,
-    updateData: UpdateQuery<${Feature}Schema>,
-  ) {
-    return this.${feature}Service.updateOneWithCondition(condition, updateData);
+  async execute(condition: FilterQuery<${Feature}Schema>) {
+    return this.${feature}Service.softDeleteByCondition(condition);
   }
 }`;
 }
@@ -520,50 +537,166 @@ import { Module } from '@nestjs/common';
 export class Application${Feature}Module {}`;
 }
 
-function gqlInputTs(prefix, { Feature, feature, featureKebab, resolverClass }) {
+function graphQLInputTypeTs(
+  prefix,
+  { Feature, feature, featureKebab, resolverClass },
+) {
   return `import { InputType, Field } from '@nestjs/graphql';
 
 @InputType()
 export class ${prefix}${Feature}Input {
-  @Field()
-  exampleField: string;
-}
-`;
+  @Field(() => String)
+  name!: string;
+}`;
 }
 
-function gqlObjectTs({ Feature, feature, featureKebab }) {
-  return `import { ObjectType, Field, ID } from '@nestjs/graphql';
+function graphQLObjectTypeTs({ Feature, feature, featureKebab }) {
+  return `import { Field, ObjectType } from '@nestjs/graphql';
+import { MongooseBaseObjectType } from '@infrastructure/mongoose/mongoose-base';
+import { PaginateDataObjectType } from '..';
 
 @ObjectType()
-export class ${Feature}ObjectType {
-  @Field(() => ID)
-  id: string;
-
-  @Field()
-  exampleField: string;
+export class ${Feature}ObjectType extends MongooseBaseObjectType {
+  @Field(() => String)
+  name!: string;
 }
-`;
+@ObjectType()
+export class ${Feature}PaginateObjectType extends PaginateDataObjectType(
+  ${Feature}ObjectType,
+) {}`;
 }
 
-function gqlResolverTs({ Feature, feature, featureKebab }) {
-  return `import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
-import { ${Feature}Service } from '../../../domain/${feature}/${feature}.service';
-import { ${Feature}ObjectType } from '../object-types/${feature}/${feature}.object-type';
-import { Create${Feature}Input } from '../input-types/${feature}/create-${feature}.input-type';
+function graphQLResolverTs({ Feature, feature, featureKebab }) {
+  return `import {
+  Fetch${Feature}UseCase,
+  GetOne${Feature}ByConditionUseCase,
+  Create${Feature}UseCase,
+  UpdateOne${Feature}ByConditionUseCase,
+  DeleteOne${Feature}ByConditionUseCase,
+} from '@application';
+import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { GraphqlAuthApi, GraphqlAccountType } from '@shared/decorators';
+import { _idArg, DataArg } from '../arguments';
 
-@Resolver(() => ${Feature}ObjectType)
+import {
+  Create${Feature}InputType,
+  Update${Feature}InputType,
+  QueryGetListInputType,
+} from '../input-types';
+import { ${Feature}ObjectType, ${Feature}PaginateObjectType } from '../object-types';
+
+@Resolver(${Feature}ObjectType)
 export class ${Feature}Resolver {
-  constructor(private readonly service: ${Feature}Service) {}
+  constructor(
+    private readonly fetch${Feature}UseCase: Fetch${Feature}UseCase,
+    private readonly getOne${Feature}ByConditionUseCase: GetOne${Feature}ByConditionUseCase,
+    private readonly create${Feature}UseCase: Create${Feature}UseCase,
+    private readonly updateOne${Feature}ByConditionUseCase: UpdateOne${Feature}ByConditionUseCase,
+    private readonly deleteOne${Feature}ByConditionUseCase: DeleteOne${Feature}ByConditionUseCase,
+  ) {}
 
-  @Query(() => [${Feature}ObjectType])
-  ${feature}List() {
-    return this.service.findAll();
+  @Query(() => ${Feature}PaginateObjectType)
+  @GraphqlAuthApi()
+  @GraphqlAccountType([])
+  async getAll${Feature}s(
+    @Args(QueryGetListInputType.name, { nullable: true })
+    queryGetListInput: QueryGetListInputType,
+  ) {
+    return await this.fetch${Feature}UseCase.execute(queryGetListInput);
+  }
+
+  @Query(() => ${Feature}ObjectType)
+  @GraphqlAuthApi()
+  @GraphqlAccountType([])
+  async getOne${Feature}ById(@_idArg() _id: string) {
+    return this.getOne${Feature}ByConditionUseCase.execute({ _id });
   }
 
   @Mutation(() => ${Feature}ObjectType)
-  create${Feature}(@Args('data') data: Create${Feature}Input) {
-    return this.service.create(data);
+  @GraphqlAuthApi()
+  @GraphqlAccountType([])
+  async create${Feature}(@DataArg() data: Create${Feature}InputType) {
+    return this.create${Feature}UseCase.execute(data);
   }
+
+  @Mutation(() => ${Feature}ObjectType)
+  @GraphqlAuthApi()
+  @GraphqlAccountType([])
+  async updateOne${Feature}ById(
+    @_idArg() _id: string,
+    @DataArg() data: Update${Feature}InputType,
+  ) {
+    return this.updateOne${Feature}ByConditionUseCase.execute({ _id }, data);
+  }
+
+  @Mutation(() => ${Feature}ObjectType)
+  @GraphqlAuthApi()
+  @GraphqlAccountType([])
+  async deleteOne${Feature}ById(@_idArg() _id: string) {
+    return this.deleteOne${Feature}ByConditionUseCase.execute({ _id });
+  }
+}`;
 }
-`;
+/** Update GraphqlModule: add import, module and resolver registration **/
+function updateGraphqlModule(filePath, { Feature, feature }) {
+  const resolverName = `${Feature}Resolver`;
+  const appModuleName = `Application${Feature}Module`;
+  let text = fs.readFileSync(filePath, 'utf8');
+
+  // 1) --- IMPORTS ---
+  // 1.1 import Resolver từ './resolvers'
+  const reResImport =
+    /import\s*\{\s*([^}]+)\s*\}\s*from\s*['"]\.\/resolvers['"];?/;
+  if (reResImport.test(text)) {
+    text = text.replace(reResImport, (m, p1) => {
+      const items = p1.split(',').map((s) => s.trim());
+      if (!items.includes(resolverName)) items.push(resolverName);
+      return `import { ${items.join(', ')} } from './resolvers';`;
+    });
+  } else {
+    // chèn ngay trên cùng nhóm import
+    text = text.replace(
+      /(import[^\n]*from[^\n]*\n)(?!import)/,
+      `$1import { ${resolverName} } from './resolvers';\n`,
+    );
+  }
+
+  // 1.2 import AppModule từ '@application'
+  const reAppImport =
+    /import\s*\{\s*([^}]+)\s*\}\s*from\s*['"]@application['"];?/;
+  if (reAppImport.test(text)) {
+    text = text.replace(reAppImport, (m, p1) => {
+      const items = p1.split(',').map((s) => s.trim());
+      if (!items.includes(appModuleName)) items.push(appModuleName);
+      return `import { ${items.join(', ')} } from '@application';`;
+    });
+  } else {
+    text = text.replace(
+      /(import[^\n]*from[^\n]*\n)(?!import)/,
+      `$1import { ${appModuleName} } from '@application';\n`,
+    );
+  }
+
+  // 2) --- @Module({ imports: [...], providers: [...] }) ---
+  // Helper: chèn vào array literal trước dấu ']' nếu chưa có
+  function injectIntoArray(source, propName, item) {
+    const re = new RegExp(`(${propName}\\s*:\\s*\\[)([\\s\\S]*?)(\\])`);
+    return source.replace(re, (m, open, body, close) => {
+      // nếu đã tồn tại, giữ nguyên
+      const exists = new RegExp(`\\b${item}\\b`).test(body);
+      if (exists) return m;
+      // loại bỏ khoảng trắng cuối để chuẩn format
+      const before = body.trim().endsWith(',') ? body : body.trim() + ',';
+      return `${open}${before} ${item} ${close}`;
+    });
+  }
+
+  text = injectIntoArray(text, 'imports', appModuleName);
+  text = injectIntoArray(text, 'providers', resolverName);
+
+  // 3) --- Ghi file ---
+  fs.writeFileSync(filePath, text, 'utf8');
+  console.log(
+    `✅ Updated ${filePath}: thêm ${resolverName} & ${appModuleName}`,
+  );
 }

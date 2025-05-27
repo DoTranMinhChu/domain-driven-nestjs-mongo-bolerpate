@@ -36,11 +36,13 @@
     "apollo-server-types": "^3.8.0",
     "axios": "^1.9.0",
     "bcrypt": "^6.0.0",
+    "commander": "^14.0.0",
     "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",
     "moment": "^2.30.1",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "ts-morph": "^25.0.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
