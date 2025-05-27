@@ -1,4 +1,3 @@
-// src/domain/user/user.module.ts
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import {
@@ -6,8 +5,8 @@ import {
   PostSchemaFactory,
 } from '@infrastructure/mongoose/schemas';
 import { PostRepository } from '@infrastructure/mongoose/repositories';
-import { APostRepository } from './repositories/post.repository.abstract';
-import { PostService } from './services/post.service';
+import { APostRepository } from './repositories';
+import { PostService } from './services';
 
 @Module({
   imports: [

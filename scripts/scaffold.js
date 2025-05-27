@@ -44,9 +44,16 @@ program
     };
     // Base src path
     const root = path.resolve(__dirname, '../src');
-
+    const files = {
+      index: `index`,
+      fileModule: `${featureKebab}.module`,
+      fileARepo: `${featureKebab}.repository.abstract`,
+      fileService: `${featureKebab}.service`,
+      fileValueObject: `${featureKebab}.value-object`,
+    };
     // Paths configuration
     const paths = {
+      /**** Domain Layer****/
       domainDir: path.join(root, 'domain', featureKebab),
       domainRepoDir: path.join(root, 'domain', featureKebab, 'repositories'),
       domainServiceDir: path.join(root, 'domain', featureKebab, 'services'),
@@ -56,6 +63,8 @@ program
         featureKebab,
         'value-objects',
       ),
+
+      //
       infraSchemaDir: path.join(root, 'infrastructure', 'mongoose', 'schemas'),
       infraRepoDir: path.join(
         root,
@@ -90,16 +99,42 @@ program
 
     /********** 1. Domain Layer **********/
     await fs.ensureDir(paths.domainDir);
-    const fileDomainARepo = `${featureKebab}.repository.abstract`;
 
-    writeIndexTs;
+    /* ---- domain/__name__/repositories ---*/
+    await fs.ensureDir(paths.domainRepoDir);
     await fs.writeFile(
-      path.join(paths.domainRepoDir, `${fileDomainARepo}.ts`),
+      path.join(paths.domainRepoDir, `${files.fileARepo}.ts`),
       domainARepositoryTs(featureData),
     );
     await fs.writeFile(
-      path.join(paths.domainDir, `index.ts`),
-      writeIndexTs([fileDomainARepo]),
+      path.join(paths.domainRepoDir, `${files.index}.ts`),
+      writeIndexTs([files.fileARepo]),
+    );
+    /* ---- domain/__name__/services ---*/
+    await fs.ensureDir(paths.domainServiceDir);
+    await fs.writeFile(
+      path.join(paths.domainServiceDir, `${files.fileService}.ts`),
+      domainServiceTs(featureData),
+    );
+    await fs.writeFile(
+      path.join(paths.domainServiceDir, `${files.index}.ts`),
+      writeIndexTs([files.fileService]),
+    );
+    /* ---- domain/__name__/value-objects ---*/
+    await fs.ensureDir(paths.domainValueObjectDir);
+    await fs.writeFile(
+      path.join(paths.domainValueObjectDir, `${files.fileValueObject}.ts`),
+      domainValueObjectTs(featureData),
+    );
+    await fs.writeFile(
+      path.join(paths.domainValueObjectDir, `${files.index}.ts`),
+      writeIndexTs([files.fileValueObject]),
+    );
+
+    /* ---- domain/__name__/__name__.module.ts ---*/
+    await fs.writeFile(
+      path.join(paths.domainDir, `${files.fileModule}.ts`),
+      domainModuleTs(featureData),
     );
     // await fs.writeFile(
     //   path.join(paths.domainDir, `${featureKebab}.entity.ts`),
@@ -250,7 +285,9 @@ function writeIndexTs(paths) {
   return paths.map((path) => `export * from './${path}';`).join('\n');
 }
 
-//
+/*********DOMAIN LAYER******** */
+
+/*-- domain/__name__/repositories/__name__.repository.abstract.ts--- */
 function domainARepositoryTs({
   Feature,
   feature,
@@ -264,22 +301,7 @@ import { ${Feature}Schema } from '@infrastructure/mongoose/schemas';
 export abstract class A${Feature}Repository extends AMongooseBaseRepository<${Feature}Schema> {}`;
 }
 
-function domainEntityTs({
-  Feature,
-  feature,
-  featureKebab,
-  moduleClass,
-  resolverClass,
-}) {
-  return `export class ${Feature} {
-  constructor(
-    public id: string,
-    // add other properties
-  ) {}
-}
-`;
-}
-
+/*-- domain/__name__/repositories/__name__.repository.abstract.ts--- */
 function domainServiceTs({
   Feature,
   feature,
@@ -287,13 +309,68 @@ function domainServiceTs({
   moduleClass,
   resolverClass,
 }) {
-  return `import { Injectable } from '@nestjs/common';
-import { ${Feature} } from './${featureKebab}.entity';
+  return `import { MongooseBaseService } from '@infrastructure/mongoose';
+import { ${Feature}Schema } from '@infrastructure/mongoose/schemas';
+import { Inject, Injectable } from '@nestjs/common';
+import { A${Feature}Repository } from '../repositories/${featureKebab}.repository.abstract';
 
 @Injectable()
-export class ${Feature}Service {
-  // Business logic for ${feature}
+export class ${Feature}Service extends MongooseBaseService<${Feature}Schema> {
+  constructor(
+    @Inject(A${Feature}Repository)
+    private readonly ${feature}Repository: A${Feature}Repository,
+  ) {
+    super(${feature}Repository);
+  }
 }
+`;
+}
+/*-- domain/__name__/value-objects/__name__.value-object.ts--- */
+function domainValueObjectTs({
+  Feature,
+  feature,
+  featureKebab,
+  moduleClass,
+  resolverClass,
+}) {
+  return `import { ${Feature}Schema } from '@infrastructure/mongoose/schemas';
+import { ABaseValueObject } from '@shared/value-objects';
+
+export class ${Feature}ValueObject extends ABaseValueObject<${Feature}Schema> {
+  protected override validate(_value: ${Feature}Schema): void {}
+}`;
+}
+/*-- domain/__name__/__name__.module.ts --- */
+function domainModuleTs({
+  Feature,
+  feature,
+  featureKebab,
+  moduleClass,
+  resolverClass,
+}) {
+  return `import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
+import {
+  ${Feature}Schema,
+  ${Feature}SchemaFactory,
+} from '@infrastructure/mongoose/schemas';
+import { ${Feature}Repository } from '@infrastructure/mongoose/repositories';
+import { A${Feature}Repository } from './repositories';
+import { ${Feature}Service } from './services';
+
+@Module({
+  imports: [
+    MongooseModule.forFeature([
+      { name: ${Feature}Schema.name, schema: ${Feature}SchemaFactory },
+    ]),
+  ],
+  providers: [
+    { provide: A${Feature}Repository, useClass: ${Feature}Repository },
+    ${Feature}Service,
+  ],
+  exports: [A${Feature}Repository, ${Feature}Service],
+})
+export class Domain${Feature}Module {}
 `;
 }
 
