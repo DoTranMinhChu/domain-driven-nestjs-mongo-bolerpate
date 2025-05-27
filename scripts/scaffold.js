@@ -551,7 +551,7 @@ function graphQLInputTypeTs(
   return `import { InputType, Field } from '@nestjs/graphql';
 
 @InputType()
-export class ${prefix}${Feature}Input {
+export class ${prefix}${Feature}InputType {
   @Field(() => String)
   name!: string;
 }`;
