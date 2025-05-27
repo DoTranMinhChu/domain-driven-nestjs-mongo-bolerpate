@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose/dist';
+import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { MongooseBaseRepository } from '../mongoose-base';
 import { PostSchema } from '../schemas';

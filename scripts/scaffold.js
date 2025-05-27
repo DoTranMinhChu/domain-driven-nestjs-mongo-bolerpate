@@ -39,8 +39,6 @@ program
       Feature,
       feature,
       featureKebab,
-      moduleClass,
-      resolverClass,
     };
     // Base src path
     const root = path.resolve(__dirname, '../src');
@@ -48,8 +46,15 @@ program
       index: `index`,
       fileModule: `${featureKebab}.module`,
       fileARepo: `${featureKebab}.repository.abstract`,
+      fileRepo: `${featureKebab}.repository`,
       fileService: `${featureKebab}.service`,
       fileValueObject: `${featureKebab}.value-object`,
+      fileSchema: `${featureKebab}.schema`,
+      fileCreateUseCase: `create-${featureKebab}.user-case`,
+      fileFetchUseCase: `fetch-${featureKebab}.user-case`,
+      fileGetOneUseCase: `get-one-${featureKebab}-by-condition.user-case`,
+      fileUpdateOneUseCase: `update-one-${featureKebab}-by-condition.user-case`,
+      fileDeleteOneUseCase: `delete-one-${featureKebab}-by-condition.user-case`,
     };
     // Paths configuration
     const paths = {
@@ -97,7 +102,30 @@ program
       ),
     };
 
-    /********** 1. Domain Layer **********/
+    /********** 1. Infrastructure Layer **********/
+
+    /* ---- infrastructure/mongoose/schemas/__name__.schema.ts ---*/
+    await fs.ensureDir(paths.infraSchemaDir);
+    await fs.writeFile(
+      path.join(paths.infraSchemaDir, `${files.fileSchema}.ts`),
+      infraSchemaTs(featureData),
+    );
+    await appendToIndex(path.join(paths.infraSchemaDir, `${files.index}.ts`), [
+      `export * from './${files.fileSchema}';`,
+    ]);
+
+    /* ---- infrastructure/mongoose/repositories/__name__.repository.ts ---*/
+    // Repositories
+    await fs.ensureDir(paths.infraRepoDir);
+    await fs.writeFile(
+      path.join(paths.infraRepoDir, `${files.fileRepo}.ts`),
+      infraRepositoryTs(featureData),
+    );
+    await appendToIndex(path.join(paths.infraRepoDir, `${files.index}.ts`), [
+      `export * from './${files.fileRepo}';`,
+    ]);
+
+    /********** 2. Domain Layer **********/
     await fs.ensureDir(paths.domainDir);
 
     /* ---- domain/__name__/repositories ---*/
@@ -136,65 +164,55 @@ program
       path.join(paths.domainDir, `${files.fileModule}.ts`),
       domainModuleTs(featureData),
     );
-    // await fs.writeFile(
-    //   path.join(paths.domainDir, `${featureKebab}.entity.ts`),
-    //   domainEntityTs(featureData),
-    // );
-    // await fs.writeFile(
-    //   path.join(paths.domainDir, `${featureKebab}.service.ts`),
-    //   domainServiceTs(featureData),
-    // );
-    // // index.ts in domain
-    // await appendToIndex(path.join(root, 'domain', 'index.ts'), [
-    //   `export * from './${featureKebab}/${featureKebab}.entity';`,
-    //   `export * from './${featureKebab}/${featureKebab}.service';`,
-    // ]);
 
-    // /********** 2. Infrastructure Layer **********/
-    // // Schemas
-    // await fs.ensureDir(paths.infraSchemaDir);
-    // await fs.writeFile(
-    //   path.join(paths.infraSchemaDir, `${featureKebab}.schema.ts`),
-    //   infraSchemaTs(featureData),
-    // );
-    // await appendToIndex(path.join(paths.infraSchemaDir, 'index.ts'), [
-    //   `export * from './${featureKebab}.schema';`,
-    // ]);
-    // // Repositories
-    // await fs.ensureDir(paths.infraRepoDir);
-    // await fs.writeFile(
-    //   path.join(paths.infraRepoDir, `${featureKebab}.repository.ts`),
-    //   infraRepositoryTs(featureData),
-    // );
-    // await appendToIndex(path.join(paths.infraRepoDir, 'index.ts'), [
-    //   `export * from './${featureKebab}.repository';`,
-    // ]);
+    /********** 3. Application Layer **********/
+    /* ---- application/__name__/use-cases/action__name__.use-case.ts ---*/
+    await fs.ensureDir(paths.appUseCasesDir);
 
-    // /********** 3. Application Layer **********/
-    // // Use-cases
-    // await fs.ensureDir(paths.appUseCasesDir);
-    // const actions = ['create', 'get', 'update', 'delete'];
-    // const ucExports = actions.map(
-    //   (a) => `export * from './${a}-${featureKebab}.use-case';`,
-    // );
-    // await fs.writeFile(
-    //   path.join(paths.appUseCasesDir, `index.ts`),
-    //   ucExports.join('\n') + '\n',
-    // );
-    // for (const action of actions) {
-    //   await fs.writeFile(
-    //     path.join(
-    //       paths.appUseCasesDir,
-    //       `${action}-${featureKebab}.use-case.ts`,
-    //     ),
-    //     ucUseCaseTs(action, featureData),
-    //   );
-    // }
-    // // Module
-    // await fs.writeFile(
-    //   path.join(paths.appModuleDir, `${featureKebab}.module.ts`),
-    //   applicationModuleTs(featureData),
-    // );
+    await fs.writeFile(
+      path.join(paths.appUseCasesDir, `${files.fileCreateUseCase}.ts`),
+      createUseCaseTs(featureData),
+    );
+    await fs.writeFile(
+      path.join(paths.appUseCasesDir, `${files.fileFetchUseCase}.ts`),
+      fetchUseCaseTs(featureData),
+    );
+    await fs.writeFile(
+      path.join(paths.appUseCasesDir, `${files.fileGetOneUseCase}.ts`),
+      getOneUseCaseTs(featureData),
+    );
+    await fs.writeFile(
+      path.join(paths.appUseCasesDir, `${files.fileUpdateOneUseCase}.ts`),
+      updateOneUseCaseTs(featureData),
+    );
+    await fs.writeFile(
+      path.join(paths.appUseCasesDir, `${files.fileDeleteOneUseCase}.ts`),
+      deleteOneUseCaseTs(featureData),
+    );
+
+    await fs.writeFile(
+      path.join(paths.appUseCasesDir, `${files.index}.ts`),
+      writeIndexTs([
+        files.fileCreateUseCase,
+        files.fileFetchUseCase,
+        files.fileGetOneUseCase,
+        files.fileUpdateOneUseCase,
+        files.fileDeleteOneUseCase,
+      ]),
+    );
+
+    /* ---- application/__name__/index.ts ---*/
+    await fs.ensureDir(paths.appModuleDir);
+    await fs.writeFile(
+      path.join(paths.appModuleDir, `${files.index}.ts`),
+      writeIndexTs([files.moduleFile, 'user-case']),
+    );
+
+     /* ---- application/__name__/__name__.module.ts ---*/
+    await fs.writeFile(
+      path.join(paths.appModuleDir, `${files.fileModule}.ts`),
+      applicationModuleTs(featureData),
+    );
 
     // /********** 4. Presentation Layer (GraphQL) **********/
     // // Input Types
@@ -241,13 +259,7 @@ async function appendToIndex(indexPath, lines) {
 }
 
 /** Update GraphqlModule: add import, module and resolver registration **/
-async function updateGraphqlModule(
-  moduleFile,
-  Feature,
-  feature,
-  moduleClass,
-  resolverClass,
-) {
+async function updateGraphqlModule(moduleFile, Feature, feature) {
   if (!(await fs.pathExists(moduleFile))) {
     console.warn(`GraphqlModule not found at ${moduleFile}, skipping update.`);
     return;
@@ -285,16 +297,10 @@ function writeIndexTs(paths) {
   return paths.map((path) => `export * from './${path}';`).join('\n');
 }
 
-/*********DOMAIN LAYER******** */
+/*********DOMAIN LAYER*********/
 
 /*-- domain/__name__/repositories/__name__.repository.abstract.ts--- */
-function domainARepositoryTs({
-  Feature,
-  feature,
-  featureKebab,
-  moduleClass,
-  resolverClass,
-}) {
+function domainARepositoryTs({ Feature, feature, featureKebab }) {
   return `import { AMongooseBaseRepository } from '@infrastructure/mongoose';
 import { ${Feature}Schema } from '@infrastructure/mongoose/schemas';
 
@@ -302,13 +308,7 @@ export abstract class A${Feature}Repository extends AMongooseBaseRepository<${Fe
 }
 
 /*-- domain/__name__/repositories/__name__.repository.abstract.ts--- */
-function domainServiceTs({
-  Feature,
-  feature,
-  featureKebab,
-  moduleClass,
-  resolverClass,
-}) {
+function domainServiceTs({ Feature, feature, featureKebab }) {
   return `import { MongooseBaseService } from '@infrastructure/mongoose';
 import { ${Feature}Schema } from '@infrastructure/mongoose/schemas';
 import { Inject, Injectable } from '@nestjs/common';
@@ -326,13 +326,7 @@ export class ${Feature}Service extends MongooseBaseService<${Feature}Schema> {
 `;
 }
 /*-- domain/__name__/value-objects/__name__.value-object.ts--- */
-function domainValueObjectTs({
-  Feature,
-  feature,
-  featureKebab,
-  moduleClass,
-  resolverClass,
-}) {
+function domainValueObjectTs({ Feature, feature, featureKebab }) {
   return `import { ${Feature}Schema } from '@infrastructure/mongoose/schemas';
 import { ABaseValueObject } from '@shared/value-objects';
 
@@ -341,13 +335,7 @@ export class ${Feature}ValueObject extends ABaseValueObject<${Feature}Schema> {
 }`;
 }
 /*-- domain/__name__/__name__.module.ts --- */
-function domainModuleTs({
-  Feature,
-  feature,
-  featureKebab,
-  moduleClass,
-  resolverClass,
-}) {
+function domainModuleTs({ Feature, feature, featureKebab }) {
   return `import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import {
@@ -373,107 +361,166 @@ import { ${Feature}Service } from './services';
 export class Domain${Feature}Module {}
 `;
 }
+/*********INFRASTRUCTURE LAYER*********/
 
-function infraSchemaTs({
-  Feature,
-  feature,
-  featureKebab,
-  moduleClass,
-  resolverClass,
-}) {
-  return `import { Schema, Prop, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+/*-- infrastructure/mongoose/schemas/__name__.schema.ts--- */
+function infraSchemaTs({ Feature, feature, featureKebab }) {
+  return `import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { MongooseBaseSchema } from '../mongoose-base';
 
-@Schema()
-export class ${Feature} extends Document {
-  @Prop({ required: true })
-  exampleField: string;
+@Schema({
+  timestamps: true,
+  collection: '${featureKebab}',
+})
+export class ${Feature}Schema extends MongooseBaseSchema {
+  @Prop({})
+  name!: string;
 }
 
-export const ${Feature}Schema = SchemaFactory.createForClass(${Feature});
-`;
+export const ${Feature}SchemaFactory = SchemaFactory.createForClass(${Feature}Schema);
+${Feature}SchemaFactory.index({ name: 'text' }, { weights: { name: 1 } });`;
 }
 
-function infraRepositoryTs({
-  Feature,
-  feature,
-  featureKebab,
-  moduleClass,
-  resolverClass,
-}) {
-  return `import { Model } from 'mongoose';
-import { Injectable, Inject } from '@nestjs/common';
-import { ${Feature} } from '../schemas/${featureKebab}.schema';
-
-@Injectable()
-export class ${Feature}Repository {
-  constructor(
-    @Inject('${constantCase(Feature)}_MODEL') private readonly model: Model<${Feature}>,
-  ) {}
-
-  // create, find, update, remove methods
-}
-`;
-}
-
-function ucUseCaseTs(
-  action,
-  { Feature, feature, featureKebab, moduleClass, resolverClass },
-) {
-  const Action = action.charAt(0).toUpperCase() + action.slice(1);
+/*-- infrastructure/mongoose/repositories/__name__.repository.ts--- */
+function infraRepositoryTs({ Feature, feature, featureKebab }) {
   return `import { Injectable } from '@nestjs/common';
-import { ${Feature}Service } from '../../domain/${featureKebab}/${featureKebab}.service';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { MongooseBaseRepository } from '../mongoose-base';
+import { ${Feature}Schema } from '../schemas';
 
 @Injectable()
-export class ${Action}${Feature}UseCase {
-  constructor(private readonly service: ${Feature}Service) {}
-
-  async execute(dto: any) {
-    // TODO: ${action} logic
+export class ${Feature}Repository extends MongooseBaseRepository<${Feature}Schema> {
+  constructor(
+    @InjectModel(${Feature}Schema.name)
+    private readonly ${feature}Model: Model<${Feature}Schema>,
+  ) {
+    super(${feature}Model);
   }
-}
-`;
+}`;
 }
 
-function applicationModuleTs({
-  Feature,
-  feature,
-  featureKebab,
-  moduleClass,
-  resolverClass,
-}) {
-  return `import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
-import { ${Feature}Service } from '../../domain/${featureKebab}/${featureKebab}.service';
-import { ${Feature}Repository } from '../../infrastructure/mongoose/repositories/${featureKebab}.repository';
-import { ${Feature}, ${Feature}Schema } from '../../infrastructure/mongoose/schemas/${featureKebab}.schema';
-import { Create${Feature}UseCase } from './use-cases/create-${featureKebab}.use-case';
-import { Get${Feature}UseCase } from './use-cases/get-${featureKebab}.use-case';
-import { Update${Feature}UseCase } from './use-cases/update-${featureKebab}.use-case';
-import { Delete${Feature}UseCase } from './use-cases/delete-${featureKebab}.use-case';
+/*********APPLICATION LAYER*********/
+/*-- application/__name__/user-cases/create-__name__.use-case.ts--- */
+function createUseCaseTs({ Feature, feature, featureKebab }) {
+  return `import { ${Feature}Service } from '@domain/${featureKebab}/services';
+import { ${Feature}Schema } from '@infrastructure/mongoose/schemas';
+import { Injectable } from '@nestjs/common';
+
+@Injectable()
+export class Create${Feature}UseCase {
+  constructor(private readonly ${feature}Service: ${Feature}Service) {}
+
+  async execute(createData: Partial<${Feature}Schema>) {
+    return this.${feature}Service.create(createData);
+  }
+}`;
+}
+/*-- application/__name__/user-cases/fetch-__name__.use-case.ts--- */
+function fetchUseCaseTs({ Feature, feature, featureKebab }) {
+  return `import { ${Feature}Service } from '@domain/${featureKebab}/services';
+import { ${Feature}Schema } from '@infrastructure/mongoose/schemas';
+import { Injectable } from '@nestjs/common';
+import { IQueryGetListInputType } from '@shared/interfaces';
+
+@Injectable()
+export class Fetch${Feature}UseCase {
+  constructor(private readonly ${feature}Service: ${Feature}Service) {}
+
+  async execute(queryInput: IQueryGetListInputType<${Feature}Schema>) {
+    return this.${feature}Service.fetch(queryInput);
+  }
+}`;
+}
+/*-- application/__name__/user-cases/get-one-__name__-by-condition.use-case.ts--- */
+function getOneUseCaseTs({ Feature, feature, featureKebab }) {
+  return `import { ${Feature}Service } from '@domain/${featureKebab}/services';
+import { ${Feature}Schema } from '@infrastructure/mongoose/schemas';
+import { Injectable } from '@nestjs/common';
+import { FilterQuery } from 'mongoose';
+
+@Injectable()
+export class GetOne${Feature}ByConditionUseCase {
+  constructor(private readonly ${feature}Service: ${Feature}Service) {}
+
+  async execute(condition: FilterQuery<${Feature}Schema>) {
+    return this.${feature}Service.findOne(condition);
+  }
+}`;
+}
+/*-- application/__name__/user-cases/update-one-__name__-by-condition.use-case.ts--- */
+function updateOneUseCaseTs({ Feature, feature, featureKebab }) {
+  return `import { ${Feature}Service } from '@domain/${featureKebab}/services';
+import { ${Feature}Schema } from '@infrastructure/mongoose/schemas';
+import { Injectable } from '@nestjs/common';
+import { FilterQuery, UpdateQuery } from 'mongoose';
+
+@Injectable()
+export class UpdateOne${Feature}ByConditionUseCase {
+  constructor(private readonly ${feature}Service: ${Feature}Service) {}
+
+  async execute(
+    condition: FilterQuery<${Feature}Schema>,
+    updateData: UpdateQuery<${Feature}Schema>,
+  ) {
+    return this.${feature}Service.updateOneWithCondition(condition, updateData);
+  }
+}`;
+}
+
+/*-- application/__name__/user-cases/delete-one-__name__-by-condition.use-case.ts--- */
+function deleteOneUseCaseTs({ Feature, feature, featureKebab }) {
+  return `import { ${Feature}Service } from '@domain/${featureKebab}/services';
+import { ${Feature}Schema } from '@infrastructure/mongoose/schemas';
+import { Injectable } from '@nestjs/common';
+import { FilterQuery, UpdateQuery } from 'mongoose';
+
+@Injectable()
+export class UpdateOne${Feature}ByConditionUseCase {
+  constructor(private readonly ${feature}Service: ${Feature}Service) {}
+
+  async execute(
+    condition: FilterQuery<${Feature}Schema>,
+    updateData: UpdateQuery<${Feature}Schema>,
+  ) {
+    return this.${feature}Service.updateOneWithCondition(condition, updateData);
+  }
+}`;
+}
+/*-- application/__name__/__name__.module.ts--- */
+function applicationModuleTs({ Feature, feature, featureKebab }) {
+  return `import { Domain${Feature}Module } from '@domain/${featureKebab}/${featureKebab}.module';
+import {
+  Create${Feature}UseCase,
+  DeleteOne${Feature}ByConditionUseCase,
+  Fetch${Feature}UseCase,
+  GetOne${Feature}ByConditionUseCase,
+  UpdateOne${Feature}ByConditionUseCase,
+} from './';
+import { Module } from '@nestjs/common';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([{ name: ${Feature}.name, schema: ${Feature}Schema }]),
-  ],
+  imports: [Domain${Feature}Module],
   providers: [
-    ${Feature}Service,
-    ${Feature}Repository,
+    Fetch${Feature}UseCase,
+    GetOne${Feature}ByConditionUseCase,
     Create${Feature}UseCase,
-    Get${Feature}UseCase,
-    Update${Feature}UseCase,
-    Delete${Feature}UseCase,
+    UpdateOne${Feature}ByConditionUseCase,
+    DeleteOne${Feature}ByConditionUseCase,
   ],
-  exports: [${Feature}Service],
+  exports: [
+    Domain${Feature}Module,
+    Fetch${Feature}UseCase,
+    GetOne${Feature}ByConditionUseCase,
+    Create${Feature}UseCase,
+    UpdateOne${Feature}ByConditionUseCase,
+    DeleteOne${Feature}ByConditionUseCase,
+  ],
 })
-export class ${Feature}Module {}
-`;
+export class Application${Feature}Module {}`;
 }
 
-function gqlInputTs(
-  prefix,
-  { Feature, feature, featureKebab, moduleClass, resolverClass },
-) {
+function gqlInputTs(prefix, { Feature, feature, featureKebab, resolverClass }) {
   return `import { InputType, Field } from '@nestjs/graphql';
 
 @InputType()
@@ -484,13 +531,7 @@ export class ${prefix}${Feature}Input {
 `;
 }
 
-function gqlObjectTs({
-  Feature,
-  feature,
-  featureKebab,
-  moduleClass,
-  resolverClass,
-}) {
+function gqlObjectTs({ Feature, feature, featureKebab }) {
   return `import { ObjectType, Field, ID } from '@nestjs/graphql';
 
 @ObjectType()
@@ -504,13 +545,7 @@ export class ${Feature}ObjectType {
 `;
 }
 
-function gqlResolverTs({
-  Feature,
-  feature,
-  featureKebab,
-  moduleClass,
-  resolverClass,
-}) {
+function gqlResolverTs({ Feature, feature, featureKebab }) {
   return `import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { ${Feature}Service } from '../../../domain/${feature}/${feature}.service';
 import { ${Feature}ObjectType } from '../object-types/${feature}/${feature}.object-type';
