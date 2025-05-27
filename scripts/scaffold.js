@@ -78,6 +78,7 @@ program
         'mongoose',
         'repositories',
       ),
+      appDir: path.join(root, 'application'),
       appUseCasesDir: path.join(root, 'application', featureKebab, 'use-cases'),
       appModuleDir: path.join(root, 'application', featureKebab),
       presentationGraphQLDir: path.join(root, 'presentation', 'graphql'),
@@ -213,6 +214,9 @@ program
         files.fileDeleteOneUseCase,
       ]),
     );
+    await appendToIndex(path.join(paths.appDir, `${files.index}.ts`), [
+      `export * from './${featureKebab}';`,
+    ]);
 
     /* ---- application/__name__/index.ts ---*/
     await fs.ensureDir(paths.appModuleDir);
@@ -292,7 +296,10 @@ program
     );
 
     // /********** 5. Update GraphqlModule **********/
-    updateGraphqlModule(paths.gqlModuleFile, featureData);
+    updateGraphqlModule(
+      path.join(paths.presentationGraphQLDir, 'graphql.module.ts'),
+      featureData,
+    );
 
     console.log(`✅ Scaffold for ${Feature} generated successfully.`);
   });
@@ -638,65 +645,90 @@ export class ${Feature}Resolver {
 }`;
 }
 /** Update GraphqlModule: add import, module and resolver registration **/
-function updateGraphqlModule(filePath, { Feature, feature }) {
+function updateGraphqlModule(pathFile, { Feature, feature }) {
+  const project = new Project({
+    tsConfigFilePath: path.resolve(__dirname, '../tsconfig.json'),
+  });
+
+  const sourceFile = project.getSourceFileOrThrow(pathFile);
   const resolverName = `${Feature}Resolver`;
   const appModuleName = `Application${Feature}Module`;
-  let text = fs.readFileSync(filePath, 'utf8');
 
-  // 1) --- IMPORTS ---
-  // 1.1 import Resolver từ './resolvers'
-  const reResImport =
-    /import\s*\{\s*([^}]+)\s*\}\s*from\s*['"]\.\/resolvers['"];?/;
-  if (reResImport.test(text)) {
-    text = text.replace(reResImport, (m, p1) => {
-      const items = p1.split(',').map((s) => s.trim());
-      if (!items.includes(resolverName)) items.push(resolverName);
-      return `import { ${items.join(', ')} } from './resolvers';`;
-    });
-  } else {
-    // chèn ngay trên cùng nhóm import
-    text = text.replace(
-      /(import[^\n]*from[^\n]*\n)(?!import)/,
-      `$1import { ${resolverName} } from './resolvers';\n`,
-    );
-  }
-
-  // 1.2 import AppModule từ '@application'
-  const reAppImport =
-    /import\s*\{\s*([^}]+)\s*\}\s*from\s*['"]@application['"];?/;
-  if (reAppImport.test(text)) {
-    text = text.replace(reAppImport, (m, p1) => {
-      const items = p1.split(',').map((s) => s.trim());
-      if (!items.includes(appModuleName)) items.push(appModuleName);
-      return `import { ${items.join(', ')} } from '@application';`;
-    });
-  } else {
-    text = text.replace(
-      /(import[^\n]*from[^\n]*\n)(?!import)/,
-      `$1import { ${appModuleName} } from '@application';\n`,
-    );
-  }
-
-  // 2) --- @Module({ imports: [...], providers: [...] }) ---
-  // Helper: chèn vào array literal trước dấu ']' nếu chưa có
-  function injectIntoArray(source, propName, item) {
-    const re = new RegExp(`(${propName}\\s*:\\s*\\[)([\\s\\S]*?)(\\])`);
-    return source.replace(re, (m, open, body, close) => {
-      // nếu đã tồn tại, giữ nguyên
-      const exists = new RegExp(`\\b${item}\\b`).test(body);
-      if (exists) return m;
-      // loại bỏ khoảng trắng cuối để chuẩn format
-      const before = body.trim().endsWith(',') ? body : body.trim() + ',';
-      return `${open}${before} ${item} ${close}`;
-    });
-  }
-
-  text = injectIntoArray(text, 'imports', appModuleName);
-  text = injectIntoArray(text, 'providers', resolverName);
-
-  // 3) --- Ghi file ---
-  fs.writeFileSync(filePath, text, 'utf8');
-  console.log(
-    `✅ Updated ${filePath}: thêm ${resolverName} & ${appModuleName}`,
+  // --- Thêm import từ './resolvers' ---
+  let dec1 = sourceFile.getImportDeclaration(
+    (d) => d.getModuleSpecifierValue() === './resolvers',
   );
+  if (dec1) {
+    const names = dec1.getNamedImports().map((n) => n.getName());
+    if (!names.includes(resolverName)) {
+      dec1.addNamedImport(resolverName);
+    }
+  } else {
+    sourceFile.addImportDeclaration({
+      namedImports: [resolverName],
+      moduleSpecifier: './resolvers',
+      quoteKind: QuoteKind.Single,
+    });
+  }
+
+  // --- Thêm import từ '@application' ---
+  let dec2 = sourceFile.getImportDeclaration(
+    (d) => d.getModuleSpecifierValue() === '@application',
+  );
+  if (dec2) {
+    const names = dec2.getNamedImports().map((n) => n.getName());
+    if (!names.includes(appModuleName)) {
+      dec2.addNamedImport(appModuleName);
+    }
+  } else {
+    sourceFile.addImportDeclaration({
+      namedImports: [appModuleName],
+      moduleSpecifier: '@application',
+      quoteKind: QuoteKind.Single,
+    });
+  }
+
+  // --- Tìm class GraphqlModule và decorator @Module ---
+  const gqlClass = sourceFile.getClassOrThrow('GraphqlModule');
+  const modDec = gqlClass.getDecoratorOrThrow('Module');
+  const arg = modDec.getArguments()[0];
+  const obj = arg.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+
+  // --- Xử lý imports array ---
+  let impProp = obj.getProperty('imports');
+  if (!impProp) {
+    obj.addPropertyAssignment({
+      name: 'imports',
+      initializer: `[${appModuleName}]`,
+    });
+  } else {
+    const arr = impProp.getInitializerIfKindOrThrow(
+      SyntaxKind.ArrayLiteralExpression,
+    );
+    const elems = arr.getElements().map((e) => e.getText());
+    if (!elems.includes(appModuleName)) {
+      arr.addElement(appModuleName);
+    }
+  }
+
+  // --- Xử lý providers array ---
+  let provProp = obj.getProperty('providers');
+  if (!provProp) {
+    obj.addPropertyAssignment({
+      name: 'providers',
+      initializer: `[${resolverName}]`,
+    });
+  } else {
+    const arr = provProp.getInitializerIfKindOrThrow(
+      SyntaxKind.ArrayLiteralExpression,
+    );
+    const elems = arr.getElements().map((e) => e.getText());
+    if (!elems.includes(resolverName)) {
+      arr.addElement(resolverName);
+    }
+  }
+
+  // --- Lưu file ---
+  sourceFile.saveSync();
+  console.log(`✅ Added ${resolverName} & ${appModuleName} into ${pathFile}`);
 }
