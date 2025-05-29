@@ -610,7 +610,7 @@ export class ${Feature}Resolver {
   @Query(() => ${Feature}PaginateObjectType)
   @GraphqlAuthApi()
   @GraphqlAccountType([])
-  async getAll${Feature}s(
+  async getAll${Feature}(
     @Args(QueryGetListInputType.name, { nullable: true })
     queryGetListInput: QueryGetListInputType,
   ) {
