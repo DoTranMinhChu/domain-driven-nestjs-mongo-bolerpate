@@ -5,7 +5,7 @@ import {
   FetchPostUseCase,
   GetOnePostByConditionUseCase,
   UpdateOnePostByConditionUseCase,
-} from './';
+} from '@application/post/use-cases';
 import { Module } from '@nestjs/common';
 
 @Module({

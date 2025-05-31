@@ -2,336 +2,388 @@
 
 /**
  * scripts/scaffold.js
- * CLI generator for Domain-Driven Design feature scaffolding in NestJS
+ * CLI generator cho Domain-Driven Design feature scaffold trong NestJS
  *
- * Usage:
- *   npm run scaffold -- FeatureName
- *
- * This script will:
- *  1. Create domain, infrastructure, application, presentation folders/files
- *  2. Populate each file with boilerplate templates
- *  3. Append export statements in index.ts files
- *  4. Register new modules and resolvers in GraphqlModule
+ * Bây giờ sẽ:
+ *  1. Sử dụng prompt tương tác để hỏi tên Feature
+ *  2. Tạo domain, infrastructure, application, presentation folders/files
+ *  3. Populate mỗi file với template boilerplate
+ *  4. Append export statements vào index.ts tương ứng
+ *  5. Gọi updateGraphqlModule để đăng ký module và resolver vào GraphqlModule
+ *  6. Sau khi updateGraphqlModule xong, tự động format file TypeScript với Prettier (đồng bộ)
  */
 
 const fs = require('fs-extra');
 const path = require('path');
-const { program } = require('commander');
-const {
-  pascalCase,
-  camelCase,
-  kebabCase,
-  constantCase,
-} = require('change-case');
+const { pascalCase, camelCase, kebabCase } = require('change-case');
 const { Project, SyntaxKind, QuoteKind } = require('ts-morph');
+const { createPromptModule } = require('inquirer');
+const prompt = createPromptModule();
+const prettier = require('prettier');
 
-program
-  .name('scaffold')
-  .arguments('<feature>')
-  .description('Generate DDD folders/files for a given feature/schema name')
-  .action(async (inputName) => {
-    // Normalize names
-    const Feature = pascalCase(inputName); // e.g. WalletTransaction
-    const feature = camelCase(inputName); // e.g. walletTransaction
-    const featureKebab = kebabCase(inputName); // e.g. wallet-transaction
-    const moduleClass = `${Feature}Module`; // e.g. WalletTransactionModule
-    const resolverClass = `${Feature}Resolver`; // e.g. WalletTransactionResolver
-    const featureData = {
-      Feature,
-      feature,
+/**
+ * formatWithPrettierSync:
+ *   - Đọc file đồng bộ (readFileSync)
+ *   - Lấy config Prettier đồng bộ (resolveConfigSync)
+ *   - Format (prettier.format)
+ *   - Ghi file đồng bộ (writeFileSync)
+ */
+async function formatWithPrettierSync(filePath) {
+  try {
+    // 1. Đọc nội dung gốc (đồng bộ)
+    const original = fs.readFileSync(filePath, 'utf-8');
+    console.log(`📄 Reading ${filePath}...`);
+    // 2. Lấy config Prettier nếu có (resolveConfigSync trả về object hoặc undefined)
+    let options = {};
+    if (typeof prettier.resolveConfigSync === 'function') {
+      const rc = prettier.resolveConfigSync(filePath);
+      if (rc && typeof rc === 'object') {
+        options = rc;
+      }
+    }
+
+    // 3. Format string đã đọc
+    const formatted = await prettier.format(original, {
+      ...options,
+      parser: 'typescript',
+      filepath: filePath,
+    });
+
+    // 4. Ghi ngược lại file (đồng bộ)
+    fs.writeFileSync(filePath, formatted, 'utf-8');
+    console.log(`✨ Formatted ${filePath} with Prettier`);
+  } catch (err) {
+    console.error(`❌ Prettier formatting failed for ${filePath}:`, err);
+  }
+}
+
+async function main() {
+  // 1) Hỏi tên feature nếu không có tham số CLI
+  let inputName = null;
+
+  if (process.argv.length >= 3) {
+    // Nếu truyền tham số CLI: node scaffold.js WalletTransaction
+    inputName = process.argv[2];
+  } else {
+    // Ngược lại, hiển thị prompt yêu cầu nhập tên Feature
+    const answers = await prompt([
+      {
+        type: 'input',
+        name: 'featureName',
+        message: 'Nhập tên Feature (ví dụ: WalletTransaction):',
+        validate: (val) => {
+          if (!val || val.trim().length === 0) {
+            return 'Tên feature không được để trống';
+          }
+          return true;
+        },
+      },
+    ]);
+    inputName = answers.featureName.trim();
+  }
+
+  // Normalize tên
+  const Feature = pascalCase(inputName); // Ví dụ: WalletTransaction
+  const feature = camelCase(inputName); // Ví dụ: walletTransaction
+  const featureKebab = kebabCase(inputName); // Ví dụ: wallet-transaction
+  const featureData = { Feature, feature, featureKebab };
+
+  // Base src path
+  const root = path.resolve(__dirname, '../src');
+  const files = {
+    index: `index`,
+    fileModule: `${featureKebab}.module`,
+    fileARepo: `${featureKebab}.repository.abstract`,
+    fileRepo: `${featureKebab}.repository`,
+    fileService: `${featureKebab}.service`,
+    fileValueObject: `${featureKebab}.value-object`,
+    fileSchema: `${featureKebab}.schema`,
+    fileCreateUseCase: `create-${featureKebab}.use-case`,
+    fileFetchUseCase: `fetch-${featureKebab}.use-case`,
+    fileGetOneUseCase: `get-one-${featureKebab}-by-condition.use-case`,
+    fileUpdateOneUseCase: `update-one-${featureKebab}-by-condition.use-case`,
+    fileDeleteOneUseCase: `delete-one-${featureKebab}-by-condition.use-case`,
+  };
+
+  // Paths configuration
+  const paths = {
+    /*** Domain Layer ***/
+    domainDir: path.join(root, 'domain', featureKebab),
+    domainRepoDir: path.join(root, 'domain', featureKebab, 'repositories'),
+    domainServiceDir: path.join(root, 'domain', featureKebab, 'services'),
+    domainValueObjectDir: path.join(
+      root,
+      'domain',
       featureKebab,
-    };
-    // Base src path
-    const root = path.resolve(__dirname, '../src');
-    const files = {
-      index: `index`,
-      fileModule: `${featureKebab}.module`,
-      fileARepo: `${featureKebab}.repository.abstract`,
-      fileRepo: `${featureKebab}.repository`,
-      fileService: `${featureKebab}.service`,
-      fileValueObject: `${featureKebab}.value-object`,
-      fileSchema: `${featureKebab}.schema`,
-      fileCreateUseCase: `create-${featureKebab}.user-case`,
-      fileFetchUseCase: `fetch-${featureKebab}.user-case`,
-      fileGetOneUseCase: `get-one-${featureKebab}-by-condition.user-case`,
-      fileUpdateOneUseCase: `update-one-${featureKebab}-by-condition.user-case`,
-      fileDeleteOneUseCase: `delete-one-${featureKebab}-by-condition.user-case`,
-    };
-    // Paths configuration
-    const paths = {
-      /**** Domain Layer****/
-      domainDir: path.join(root, 'domain', featureKebab),
-      domainRepoDir: path.join(root, 'domain', featureKebab, 'repositories'),
-      domainServiceDir: path.join(root, 'domain', featureKebab, 'services'),
-      domainValueObjectDir: path.join(
-        root,
-        'domain',
-        featureKebab,
-        'value-objects',
-      ),
+      'value-objects',
+    ),
 
-      //
-      infraSchemaDir: path.join(root, 'infrastructure', 'mongoose', 'schemas'),
-      infraRepoDir: path.join(
-        root,
-        'infrastructure',
-        'mongoose',
-        'repositories',
-      ),
-      appDir: path.join(root, 'application'),
-      appUseCasesDir: path.join(root, 'application', featureKebab, 'use-cases'),
-      appModuleDir: path.join(root, 'application', featureKebab),
-      presentationGraphQLDir: path.join(root, 'presentation', 'graphql'),
-      presentationGraphQLInputTypesDir: path.join(
-        root,
-        'presentation',
-        'graphql',
-        'input-types',
-      ),
-      presentationGraphQLInputTypeDir: path.join(
-        root,
-        'presentation',
-        'graphql',
-        'input-types',
-        featureKebab,
-      ),
-      presentationGraphQLObjectTypesDir: path.join(
-        root,
-        'presentation',
-        'graphql',
-        'object-types',
-      ),
-      presentationGraphQLObjectTypeDir: path.join(
-        root,
-        'presentation',
-        'graphql',
-        'object-types',
-        featureKebab,
-      ),
-      presentationGraphQLResolversDir: path.join(
-        root,
-        'presentation',
-        'graphql',
-        'resolvers',
-      ),
-    };
+    /*** Infrastructure Layer ***/
+    infraSchemaDir: path.join(root, 'infrastructure', 'mongoose', 'schemas'),
+    infraRepoDir: path.join(root, 'infrastructure', 'mongoose', 'repositories'),
 
-    /********** 1. Infrastructure Layer **********/
+    /*** Application Layer ***/
+    appDir: path.join(root, 'application'),
+    appUseCasesDir: path.join(root, 'application', featureKebab, 'use-cases'),
+    appModuleDir: path.join(root, 'application', featureKebab),
 
-    /* ---- infrastructure/mongoose/schemas/__name__.schema.ts ---*/
-    await fs.ensureDir(paths.infraSchemaDir);
-    writeNewFile(
-      path.join(paths.infraSchemaDir, `${files.fileSchema}.ts`),
-      infraSchemaTs(featureData),
-    );
-    await appendToIndex(path.join(paths.infraSchemaDir, `${files.index}.ts`), [
-      `export * from './${files.fileSchema}';`,
-    ]);
+    /*** Presentation GraphQL Layer ***/
+    presentationGraphQLDir: path.join(root, 'presentation', 'graphql'),
+    presentationGraphQLInputTypesDir: path.join(
+      root,
+      'presentation',
+      'graphql',
+      'input-types',
+    ),
+    presentationGraphQLInputTypeDir: path.join(
+      root,
+      'presentation',
+      'graphql',
+      'input-types',
+      featureKebab,
+    ),
+    presentationGraphQLObjectTypesDir: path.join(
+      root,
+      'presentation',
+      'graphql',
+      'object-types',
+    ),
+    presentationGraphQLObjectTypeDir: path.join(
+      root,
+      'presentation',
+      'graphql',
+      'object-types',
+      featureKebab,
+    ),
+    presentationGraphQLResolversDir: path.join(
+      root,
+      'presentation',
+      'graphql',
+      'resolvers',
+    ),
+  };
 
-    /* ---- infrastructure/mongoose/repositories/__name__.repository.ts ---*/
-    // Repositories
-    await fs.ensureDir(paths.infraRepoDir);
-    writeNewFile(
-      path.join(paths.infraRepoDir, `${files.fileRepo}.ts`),
-      infraRepositoryTs(featureData),
-    );
-    await appendToIndex(path.join(paths.infraRepoDir, `${files.index}.ts`), [
-      `export * from './${files.fileRepo}';`,
-    ]);
+  /********** 1. Infrastructure Layer **********/
 
-    /********** 2. Domain Layer **********/
-    await fs.ensureDir(paths.domainDir);
+  // ---- infrastructure/mongoose/schemas/<feature>.schema.ts ---
+  await fs.ensureDir(paths.infraSchemaDir);
+  writeNewFile(
+    path.join(paths.infraSchemaDir, `${files.fileSchema}.ts`),
+    infraSchemaTs(featureData),
+  );
+  await appendToIndex(path.join(paths.infraSchemaDir, `${files.index}.ts`), [
+    `export * from './${files.fileSchema}';`,
+  ]);
 
-    /* ---- domain/__name__/repositories ---*/
-    await fs.ensureDir(paths.domainRepoDir);
-    writeNewFile(
-      path.join(paths.domainRepoDir, `${files.fileARepo}.ts`),
-      domainARepositoryTs(featureData),
-    );
-    writeNewFile(
-      path.join(paths.domainRepoDir, `${files.index}.ts`),
-      writeIndexTs([files.fileARepo]),
-    );
-    /* ---- domain/__name__/services ---*/
-    await fs.ensureDir(paths.domainServiceDir);
-    writeNewFile(
-      path.join(paths.domainServiceDir, `${files.fileService}.ts`),
-      domainServiceTs(featureData),
-    );
-    writeNewFile(
-      path.join(paths.domainServiceDir, `${files.index}.ts`),
-      writeIndexTs([files.fileService]),
-    );
-    /* ---- domain/__name__/value-objects ---*/
-    await fs.ensureDir(paths.domainValueObjectDir);
-    writeNewFile(
-      path.join(paths.domainValueObjectDir, `${files.fileValueObject}.ts`),
-      domainValueObjectTs(featureData),
-    );
-    writeNewFile(
-      path.join(paths.domainValueObjectDir, `${files.index}.ts`),
-      writeIndexTs([files.fileValueObject]),
-    );
+  // ---- infrastructure/mongoose/repositories/<feature>.repository.ts ---
+  await fs.ensureDir(paths.infraRepoDir);
+  writeNewFile(
+    path.join(paths.infraRepoDir, `${files.fileRepo}.ts`),
+    infraRepositoryTs(featureData),
+  );
+  await appendToIndex(path.join(paths.infraRepoDir, `${files.index}.ts`), [
+    `export * from './${files.fileRepo}';`,
+  ]);
 
-    /* ---- domain/__name__/__name__.module.ts ---*/
-    writeNewFile(
-      path.join(paths.domainDir, `${files.fileModule}.ts`),
-      domainModuleTs(featureData),
-    );
+  /********** 2. Domain Layer **********/
+  await fs.ensureDir(paths.domainDir);
 
-    /********** 3. Application Layer **********/
-    /* ---- application/__name__/use-cases/action__name__.use-case.ts ---*/
-    await fs.ensureDir(paths.appUseCasesDir);
+  // ---- domain/<feature>/repositories ---
+  await fs.ensureDir(paths.domainRepoDir);
+  writeNewFile(
+    path.join(paths.domainRepoDir, `${files.fileARepo}.ts`),
+    domainARepositoryTs(featureData),
+  );
+  writeNewFile(
+    path.join(paths.domainRepoDir, `${files.index}.ts`),
+    writeIndexTs([files.fileARepo]),
+  );
 
-    writeNewFile(
-      path.join(paths.appUseCasesDir, `${files.fileCreateUseCase}.ts`),
-      createUseCaseTs(featureData),
-    );
-    writeNewFile(
-      path.join(paths.appUseCasesDir, `${files.fileFetchUseCase}.ts`),
-      fetchUseCaseTs(featureData),
-    );
-    writeNewFile(
-      path.join(paths.appUseCasesDir, `${files.fileGetOneUseCase}.ts`),
-      getOneUseCaseTs(featureData),
-    );
-    writeNewFile(
-      path.join(paths.appUseCasesDir, `${files.fileUpdateOneUseCase}.ts`),
-      updateOneUseCaseTs(featureData),
-    );
-    writeNewFile(
-      path.join(paths.appUseCasesDir, `${files.fileDeleteOneUseCase}.ts`),
-      deleteOneUseCaseTs(featureData),
-    );
+  // ---- domain/<feature>/services ---
+  await fs.ensureDir(paths.domainServiceDir);
+  writeNewFile(
+    path.join(paths.domainServiceDir, `${files.fileService}.ts`),
+    domainServiceTs(featureData),
+  );
+  writeNewFile(
+    path.join(paths.domainServiceDir, `${files.index}.ts`),
+    writeIndexTs([files.fileService]),
+  );
 
-    writeNewFile(
-      path.join(paths.appUseCasesDir, `${files.index}.ts`),
-      writeIndexTs([
-        files.fileCreateUseCase,
-        files.fileFetchUseCase,
-        files.fileGetOneUseCase,
-        files.fileUpdateOneUseCase,
-        files.fileDeleteOneUseCase,
-      ]),
-    );
-    await appendToIndex(path.join(paths.appDir, `${files.index}.ts`), [
-      `export * from './${featureKebab}';`,
-    ]);
+  // ---- domain/<feature>/value-objects ---
+  await fs.ensureDir(paths.domainValueObjectDir);
+  writeNewFile(
+    path.join(paths.domainValueObjectDir, `${files.fileValueObject}.ts`),
+    domainValueObjectTs(featureData),
+  );
+  writeNewFile(
+    path.join(paths.domainValueObjectDir, `${files.index}.ts`),
+    writeIndexTs([files.fileValueObject]),
+  );
 
-    /* ---- application/__name__/index.ts ---*/
-    await fs.ensureDir(paths.appModuleDir);
-    writeNewFile(
-      path.join(paths.appModuleDir, `${files.index}.ts`),
-      writeIndexTs([files.fileModule, 'use-cases']),
-    );
+  // ---- domain/<feature>/<feature>.module.ts ---
+  writeNewFile(
+    path.join(paths.domainDir, `${files.fileModule}.ts`),
+    domainModuleTs(featureData),
+  );
 
-    /* ---- application/__name__/__name__.module.ts ---*/
-    writeNewFile(
-      path.join(paths.appModuleDir, `${files.fileModule}.ts`),
-      applicationModuleTs(featureData),
-    );
+  /********** 3. Application Layer **********/
 
-    // /********** 4. Presentation Layer (GraphQL) **********/
+  // ---- application/<feature>/use-cases ---
+  await fs.ensureDir(paths.appUseCasesDir);
 
-    /* ---- presentation/graphql/input-types/__name__/Prefix__name__.input-type.ts ---*/
-    await fs.ensureDir(paths.presentationGraphQLInputTypeDir);
-    writeNewFile(
-      path.join(
-        paths.presentationGraphQLInputTypeDir,
-        `create-${featureKebab}.input-type.ts`,
-      ),
-      graphQLInputTypeTs('Create', featureData),
-    );
-    writeNewFile(
-      path.join(
-        paths.presentationGraphQLInputTypeDir,
-        `update-${featureKebab}.input-type.ts`,
-      ),
-      graphQLInputTypeTs('Update', featureData),
-    );
-    writeNewFile(
-      path.join(paths.presentationGraphQLInputTypeDir, `${files.index}.ts`),
-      writeIndexTs([
-        `create-${featureKebab}.input-type`,
-        `update-${featureKebab}.input-type`,
-      ]),
-    );
-    await appendToIndex(
-      path.join(paths.presentationGraphQLInputTypesDir, `${files.index}.ts`),
-      [`export * from './${featureKebab}';`],
-    );
+  writeNewFile(
+    path.join(paths.appUseCasesDir, `${files.fileCreateUseCase}.ts`),
+    createUseCaseTs(featureData),
+  );
+  writeNewFile(
+    path.join(paths.appUseCasesDir, `${files.fileFetchUseCase}.ts`),
+    fetchUseCaseTs(featureData),
+  );
+  writeNewFile(
+    path.join(paths.appUseCasesDir, `${files.fileGetOneUseCase}.ts`),
+    getOneUseCaseTs(featureData),
+  );
+  writeNewFile(
+    path.join(paths.appUseCasesDir, `${files.fileUpdateOneUseCase}.ts`),
+    updateOneUseCaseTs(featureData),
+  );
+  writeNewFile(
+    path.join(paths.appUseCasesDir, `${files.fileDeleteOneUseCase}.ts`),
+    deleteOneUseCaseTs(featureData),
+  );
 
-    // Object Types
-    /* ---- presentation/graphql/object-types/__name__/__name__.object-type.ts ---*/
-    await fs.ensureDir(paths.presentationGraphQLObjectTypeDir);
-    writeNewFile(
-      path.join(
-        paths.presentationGraphQLObjectTypeDir,
-        `${featureKebab}.object-type.ts`,
-      ),
-      graphQLObjectTypeTs(featureData),
-    );
-    writeNewFile(
-      path.join(paths.presentationGraphQLObjectTypeDir, `${files.index}.ts`),
-      writeIndexTs([`${featureKebab}.object-type`]),
-    );
-    await appendToIndex(
-      path.join(paths.presentationGraphQLObjectTypesDir, `${files.index}.ts`),
-      [`export * from './${featureKebab}';`],
-    );
-    // Resolver
+  writeNewFile(
+    path.join(paths.appUseCasesDir, `${files.index}.ts`),
+    writeIndexTs([
+      files.fileCreateUseCase,
+      files.fileFetchUseCase,
+      files.fileGetOneUseCase,
+      files.fileUpdateOneUseCase,
+      files.fileDeleteOneUseCase,
+    ]),
+  );
+  await appendToIndex(path.join(paths.appDir, `${files.index}.ts`), [
+    `export * from './${featureKebab}';`,
+  ]);
 
-    /* ---- presentation/graphql/resolvers/__name__.resolver.ts ---*/
-    await fs.ensureDir(paths.presentationGraphQLResolversDir);
-    writeNewFile(
-      path.join(
-        paths.presentationGraphQLResolversDir,
-        `${featureKebab}.resolver.ts`,
-      ),
-      graphQLResolverTs(featureData),
-    );
-    await appendToIndex(
-      path.join(paths.presentationGraphQLResolversDir, 'index.ts'),
-      [`export * from './${featureKebab}.resolver';`],
-    );
+  // ---- application/<feature>/index.ts & module.ts ---
+  await fs.ensureDir(paths.appModuleDir);
+  writeNewFile(
+    path.join(paths.appModuleDir, `${files.index}.ts`),
+    writeIndexTs([files.fileModule, 'use-cases']),
+  );
+  writeNewFile(
+    path.join(paths.appModuleDir, `${files.fileModule}.ts`),
+    applicationModuleTs(featureData),
+  );
 
-    // /********** 5. Update GraphqlModule **********/
-    updateGraphqlModule(
-      path.join(paths.presentationGraphQLDir, 'graphql.module.ts'),
-      featureData,
-    );
+  /********** 4. Presentation Layer (GraphQL) **********/
 
-    console.log(`✅ Scaffold for ${Feature} generated successfully.`);
-  });
+  // ---- input-types/create-<feature>.input-type.ts & update-<feature>.input-type.ts ---
+  await fs.ensureDir(paths.presentationGraphQLInputTypeDir);
+  writeNewFile(
+    path.join(
+      paths.presentationGraphQLInputTypeDir,
+      `create-${featureKebab}.input-type.ts`,
+    ),
+    graphQLInputTypeTs('Create', featureData),
+  );
+  writeNewFile(
+    path.join(
+      paths.presentationGraphQLInputTypeDir,
+      `update-${featureKebab}.input-type.ts`,
+    ),
+    graphQLInputTypeTs('Update', featureData),
+  );
+  writeNewFile(
+    path.join(paths.presentationGraphQLInputTypeDir, `${files.index}.ts`),
+    writeIndexTs([
+      `create-${featureKebab}.input-type`,
+      `update-${featureKebab}.input-type`,
+    ]),
+  );
+  await appendToIndex(
+    path.join(paths.presentationGraphQLInputTypesDir, `${files.index}.ts`),
+    [`export * from './${featureKebab}';`],
+  );
 
-program.parse(process.argv);
+  // ---- object-types/<feature>.object-type.ts ---
+  await fs.ensureDir(paths.presentationGraphQLObjectTypeDir);
+  writeNewFile(
+    path.join(
+      paths.presentationGraphQLObjectTypeDir,
+      `${featureKebab}.object-type.ts`,
+    ),
+    graphQLObjectTypeTs(featureData),
+  );
+  writeNewFile(
+    path.join(paths.presentationGraphQLObjectTypeDir, `${files.index}.ts`),
+    writeIndexTs([`${featureKebab}.object-type`]),
+  );
+  await appendToIndex(
+    path.join(paths.presentationGraphQLObjectTypesDir, `${files.index}.ts`),
+    [`export * from './${featureKebab}';`],
+  );
 
-/** Append lines to index.ts, avoid duplicates **/
+  // ---- resolvers/<feature>.resolver.ts ---
+  await fs.ensureDir(paths.presentationGraphQLResolversDir);
+  writeNewFile(
+    path.join(
+      paths.presentationGraphQLResolversDir,
+      `${featureKebab}.resolver.ts`,
+    ),
+    graphQLResolverTs(featureData),
+  );
+  await appendToIndex(
+    path.join(paths.presentationGraphQLResolversDir, 'index.ts'),
+    [`export * from './${featureKebab}.resolver';`],
+  );
+
+  /********** 5. Update GraphqlModule **********/
+  const graphqlModulePath = path.join(
+    paths.presentationGraphQLDir,
+    'graphql.module.ts',
+  );
+  await updateGraphqlModule(graphqlModulePath, featureData);
+
+  console.log(`✅ Scaffold cho ${Feature} đã được tạo thành công.`);
+}
+
+main().catch((err) => {
+  console.error('❌ Đã xảy ra lỗi khi scaffold:', err);
+  process.exit(1);
+});
+
+/** Append lines vào index.ts, tránh duplicate **/
 async function appendToIndex(indexPath, lines) {
   let content = '';
-  if (await fs.pathExists(indexPath))
+  if (await fs.pathExists(indexPath)) {
     content = await fs.readFile(indexPath, 'utf-8');
+  }
   for (const line of lines) {
     if (!content.includes(line)) {
       content += (content.endsWith('\n') ? '' : '\n') + line + '\n';
     }
   }
-  fs.writeFileSync(indexPath, content);
-  console.log(`✔️  Updated at ${indexPath}`);
+  await fs.writeFile(indexPath, content);
+  console.log(`✔️  Updated ${indexPath}`);
 }
 
 function writeNewFile(file, data) {
   fs.writeFileSync(file, data);
   console.log(`✔️  Created ${file}`);
 }
+
 /** ============= Templates =========== **/
+
 function writeIndexTs(paths) {
-  return paths.map((path) => `export * from './${path}';`).join('\n');
+  return paths.map((p) => `export * from './${p}';`).join('\n');
 }
 
-/*********DOMAIN LAYER*********/
+/********* DOMAIN LAYER *********/
 
-/*-- domain/__name__/repositories/__name__.repository.abstract.ts--- */
+// domain/<feature>/repositories/<feature>.repository.abstract.ts
 function domainARepositoryTs({ Feature, feature, featureKebab }) {
   return `import { AMongooseBaseRepository } from '@infrastructure/mongoose';
 import { ${Feature}Schema } from '@infrastructure/mongoose/schemas';
@@ -339,7 +391,7 @@ import { ${Feature}Schema } from '@infrastructure/mongoose/schemas';
 export abstract class A${Feature}Repository extends AMongooseBaseRepository<${Feature}Schema> {}`;
 }
 
-/*-- domain/__name__/repositories/__name__.repository.abstract.ts--- */
+// domain/<feature>/services/<feature>.service.ts
 function domainServiceTs({ Feature, feature, featureKebab }) {
   return `import { MongooseBaseService } from '@infrastructure/mongoose';
 import { ${Feature}Schema } from '@infrastructure/mongoose/schemas';
@@ -357,7 +409,8 @@ export class ${Feature}Service extends MongooseBaseService<${Feature}Schema> {
 }
 `;
 }
-/*-- domain/__name__/value-objects/__name__.value-object.ts--- */
+
+// domain/<feature>/value-objects/<feature>.value-object.ts
 function domainValueObjectTs({ Feature, feature, featureKebab }) {
   return `import { ${Feature}Schema } from '@infrastructure/mongoose/schemas';
 import { ABaseValueObject } from '@shared/value-objects';
@@ -366,7 +419,8 @@ export class ${Feature}ValueObject extends ABaseValueObject<${Feature}Schema> {
   protected override validate(_value: ${Feature}Schema): void {}
 }`;
 }
-/*-- domain/__name__/__name__.module.ts --- */
+
+// domain/<feature>/<feature>.module.ts
 function domainModuleTs({ Feature, feature, featureKebab }) {
   return `import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -393,9 +447,10 @@ import { ${Feature}Service } from './services';
 export class Domain${Feature}Module {}
 `;
 }
-/*********INFRASTRUCTURE LAYER*********/
 
-/*-- infrastructure/mongoose/schemas/__name__.schema.ts--- */
+/********* INFRASTRUCTURE LAYER *********/
+
+// infrastructure/mongoose/schemas/<feature>.schema.ts
 function infraSchemaTs({ Feature, feature, featureKebab }) {
   return `import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { MongooseBaseSchema } from '../mongoose-base';
@@ -413,7 +468,7 @@ export const ${Feature}SchemaFactory = SchemaFactory.createForClass(${Feature}Sc
 ${Feature}SchemaFactory.index({ name: 'text' }, { weights: { name: 1 } });`;
 }
 
-/*-- infrastructure/mongoose/repositories/__name__.repository.ts--- */
+// infrastructure/mongoose/repositories/<feature>.repository.ts
 function infraRepositoryTs({ Feature, feature, featureKebab }) {
   return `import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -432,8 +487,9 @@ export class ${Feature}Repository extends MongooseBaseRepository<${Feature}Schem
 }`;
 }
 
-/*********APPLICATION LAYER*********/
-/*-- application/__name__/user-cases/create-__name__.use-case.ts--- */
+/********* APPLICATION LAYER *********/
+
+// application/<feature>/use-cases/create-<feature>.use-case.ts
 function createUseCaseTs({ Feature, feature, featureKebab }) {
   return `import { ${Feature}Service } from '@domain/${featureKebab}/services';
 import { ${Feature}Schema } from '@infrastructure/mongoose/schemas';
@@ -448,7 +504,8 @@ export class Create${Feature}UseCase {
   }
 }`;
 }
-/*-- application/__name__/user-cases/fetch-__name__.use-case.ts--- */
+
+// application/<feature>/use-cases/fetch-<feature>.use-case.ts
 function fetchUseCaseTs({ Feature, feature, featureKebab }) {
   return `import { ${Feature}Service } from '@domain/${featureKebab}/services';
 import { ${Feature}Schema } from '@infrastructure/mongoose/schemas';
@@ -464,7 +521,8 @@ export class Fetch${Feature}UseCase {
   }
 }`;
 }
-/*-- application/__name__/user-cases/get-one-__name__-by-condition.use-case.ts--- */
+
+// application/<feature>/use-cases/get-one-<feature>-by-condition.use-case.ts
 function getOneUseCaseTs({ Feature, feature, featureKebab }) {
   return `import { ${Feature}Service } from '@domain/${featureKebab}/services';
 import { ${Feature}Schema } from '@infrastructure/mongoose/schemas';
@@ -480,7 +538,8 @@ export class GetOne${Feature}ByConditionUseCase {
   }
 }`;
 }
-/*-- application/__name__/user-cases/update-one-__name__-by-condition.use-case.ts--- */
+
+// application/<feature>/use-cases/update-one-<feature>-by-condition.use-case.ts
 function updateOneUseCaseTs({ Feature, feature, featureKebab }) {
   return `import { ${Feature}Service } from '@domain/${featureKebab}/services';
 import { ${Feature}Schema } from '@infrastructure/mongoose/schemas';
@@ -500,7 +559,7 @@ export class UpdateOne${Feature}ByConditionUseCase {
 }`;
 }
 
-/*-- application/__name__/user-cases/delete-one-__name__-by-condition.use-case.ts--- */
+// application/<feature>/use-cases/delete-one-<feature>-by-condition.use-case.ts
 function deleteOneUseCaseTs({ Feature, feature, featureKebab }) {
   return `import { ${Feature}Service } from '@domain/${featureKebab}/services';
 import { ${Feature}Schema } from '@infrastructure/mongoose/schemas';
@@ -516,7 +575,8 @@ export class DeleteOne${Feature}ByConditionUseCase {
   }
 }`;
 }
-/*-- application/__name__/__name__.module.ts--- */
+
+// application/<feature>/<feature>.module.ts
 function applicationModuleTs({ Feature, feature, featureKebab }) {
   return `import { Domain${Feature}Module } from '@domain/${featureKebab}/${featureKebab}.module';
 import {
@@ -525,7 +585,7 @@ import {
   Fetch${Feature}UseCase,
   GetOne${Feature}ByConditionUseCase,
   UpdateOne${Feature}ByConditionUseCase,
-} from './';
+} from '@application/${featureKebab}/use-cases';
 import { Module } from '@nestjs/common';
 
 @Module({
@@ -549,10 +609,9 @@ import { Module } from '@nestjs/common';
 export class Application${Feature}Module {}`;
 }
 
-function graphQLInputTypeTs(
-  prefix,
-  { Feature, feature, featureKebab, resolverClass },
-) {
+/********* PRESENTATION LAYER (GraphQL) *********/
+
+function graphQLInputTypeTs(prefix, { Feature, feature, featureKebab }) {
   return `import { InputType, Field } from '@nestjs/graphql';
 
 @InputType()
@@ -649,8 +708,10 @@ export class ${Feature}Resolver {
   }
 }`;
 }
-/** Update GraphqlModule: add import, module and resolver registration **/
-function updateGraphqlModule(pathFile, { Feature, feature }) {
+
+/** ============= Cập nhật GraphqlModule + Auto-Format =========== **/
+async function updateGraphqlModule(pathFile, { Feature, feature }) {
+  // Dùng ts-morph để load và chỉnh sửa
   const project = new Project({
     tsConfigFilePath: path.resolve(__dirname, '../tsconfig.json'),
   });
@@ -733,7 +794,10 @@ function updateGraphqlModule(pathFile, { Feature, feature }) {
     }
   }
 
-  // --- Lưu file ---
+  // --- Lưu file (đồng bộ) trước khi format ---
   sourceFile.saveSync();
-  console.log(`✅ Added ${resolverName} & ${appModuleName} into ${pathFile}`);
+  console.log(`✅ Đã thêm ${resolverName} & ${appModuleName} vào ${pathFile}`);
+
+  // --- Tự động format lại file bằng Prettier (đồng bộ) ---
+  await formatWithPrettierSync(pathFile);
 }

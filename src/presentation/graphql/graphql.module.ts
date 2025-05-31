@@ -10,12 +10,15 @@ import {
 import { GraphqlLoggingPlugin } from '@shared/plugins';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
-
 import { ApolloDriverConfig, ApolloDriver } from '@nestjs/apollo';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
-import { PostResolver, UserResolver } from './resolvers';
-import { ApplicationPostModule, ApplicationUserModule } from '@application';
+import { PostResolver, UserResolver, AdminResolver } from './resolvers';
+import {
+  ApplicationPostModule,
+  ApplicationUserModule,
+  ApplicationAdminModule,
+} from '@application';
 
 @Module({
   imports: [
@@ -31,6 +34,7 @@ import { ApplicationPostModule, ApplicationUserModule } from '@application';
     EnvironmentConfig,
     ApplicationPostModule,
     ApplicationUserModule,
+    ApplicationAdminModule,
   ],
   controllers: [],
   providers: [
@@ -53,6 +57,7 @@ import { ApplicationPostModule, ApplicationUserModule } from '@application';
     GraphqlLoggingPlugin,
     PostResolver,
     UserResolver,
+    AdminResolver,
   ],
 })
 export class GraphqlModule implements NestModule {
