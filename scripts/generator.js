@@ -13,13 +13,13 @@
  *  6. Sau khi updateGraphqlModule xong, tự động format file TypeScript với Prettier (đồng bộ)
  */
 
-const fs = require('fs-extra');
+const prettier = require('prettier');
 const path = require('path');
+const fs = require('fs-extra');
 const { pascalCase, camelCase, kebabCase } = require('change-case');
 const { Project, SyntaxKind, QuoteKind } = require('ts-morph');
 const { createPromptModule } = require('inquirer');
 const prompt = createPromptModule();
-const prettier = require('prettier');
 
 /**
  * formatWithPrettierSync:
@@ -98,8 +98,11 @@ async function main() {
         type: 'input',
         name: 'restVersion',
         message: 'Nhập version REST (ví dụ: 1):',
-        default: 1,
+        default: '1',
         validate: (val) => {
+          if (!val) {
+            return 'Phiên bản REST không được để trống';
+          }
           const num = Number(val.trim());
           if (isNaN(num) || num <= 0) {
             return 'Phiên bản REST phải là một số dương';
@@ -486,7 +489,7 @@ async function main() {
         paths.presentationApiVersionObjectSchemaDir,
         `${featureKebab}.object-schema.ts`,
       ),
-      graphQLObjectTypeTs(featureData),
+      restApiObjectSchemaTs(featureData),
     );
     writeNewFile(
       path.join(
@@ -497,7 +500,7 @@ async function main() {
     );
     await appendToIndex(
       path.join(
-        paths.presentationApiVersionObjectsSchemaDir,
+        paths.presentationApiVersionObjectSchemasDir,
         `${files.index}.ts`,
       ),
       [`export * from './${featureKebab}';`],
@@ -510,7 +513,7 @@ async function main() {
         paths.presentationApiVersionControllersDir,
         `${featureKebab}.controller.ts`,
       ),
-      graphQLResolverTs(featureData),
+      restApiControllerTs(featureData),
     );
     await appendToIndex(
       path.join(paths.presentationApiVersionControllersDir, 'index.ts'),
@@ -1101,7 +1104,7 @@ export class ${Feature}${Version}Controller {
   }
 }`;
 }
-export async function updateApiVersionModule(
+async function updateApiVersionModule(
   pathFile,
   { Feature, featureKebab, Version },
 ) {
