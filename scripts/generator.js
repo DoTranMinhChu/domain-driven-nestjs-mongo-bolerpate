@@ -81,12 +81,50 @@ async function main() {
     ]);
     inputName = answers.featureName.trim();
   }
+  // 2) Ask API types
+  const { apiTypes } = await prompt([
+    {
+      type: 'checkbox',
+      name: 'apiTypes',
+      message: 'Chọn loại API scaffold:',
+      choices: ['GraphQL', 'REST'],
+      validate: (arr) => (arr.length > 0 ? true : 'Phải chọn ít nhất 1'),
+    },
+  ]);
+  let restVersion = null;
+  if (apiTypes.includes('REST')) {
+    const ans = await prompt([
+      {
+        type: 'input',
+        name: 'restVersion',
+        message: 'Nhập version REST (ví dụ: 1):',
+        default: 1,
+        validate: (val) => {
+          const num = Number(val.trim());
+          if (isNaN(num) || num <= 0) {
+            return 'Phiên bản REST phải là một số dương';
+          }
+          return true;
+        },
+      },
+    ]);
+    restVersion = Number(ans.restVersion.trim());
+  }
 
   // Normalize tên
   const Feature = pascalCase(inputName); // Ví dụ: WalletTransaction
   const feature = camelCase(inputName); // Ví dụ: walletTransaction
   const featureKebab = kebabCase(inputName); // Ví dụ: wallet-transaction
-  const featureData = { Feature, feature, featureKebab };
+  const Version = restVersion ? `V${restVersion}` : '';
+  const version = restVersion ? `v${restVersion}` : '';
+
+  const featureData = {
+    Feature,
+    feature,
+    featureKebab,
+    Version,
+    version,
+  };
 
   // Base src path
   const root = path.resolve(__dirname, '../src');
@@ -103,6 +141,13 @@ async function main() {
     fileGetOneUseCase: `get-one-${featureKebab}-by-condition.use-case`,
     fileUpdateOneUseCase: `update-one-${featureKebab}-by-condition.use-case`,
     fileDeleteOneUseCase: `delete-one-${featureKebab}-by-condition.use-case`,
+    // Rest API files
+    fileApiVersionModule: `api.module`,
+    fileApiVersionModule: `api-${version}.module`,
+    fileController: `${featureKebab}-${version}.controller`,
+    fileCreateInputSchema: `create-${featureKebab}.input-schema`,
+    fileUpdateInputSchema: `update-${featureKebab}.input-schema`,
+    fileObjectSchema: `${featureKebab}.object-schema`,
   };
 
   // Paths configuration
@@ -160,6 +205,51 @@ async function main() {
       'presentation',
       'graphql',
       'resolvers',
+    ),
+    /*** Presentation REST Layer ***/
+    presentationApiDir: path.join(root, 'presentation', 'api'),
+    presentationApiVersionDir: path.join(
+      root,
+      'presentation',
+      'api',
+      `${version}`,
+    ),
+    presentationApiVersionControllersDir: path.join(
+      root,
+      'presentation',
+      'api',
+      `${version}`,
+      'controllers',
+    ),
+    presentationApiVersionInputSchemasDir: path.join(
+      root,
+      'presentation',
+      'api',
+      `${version}`,
+      'input-schemas',
+    ),
+    presentationApiVersionInputSchemaDir: path.join(
+      root,
+      'presentation',
+      'api',
+      `${version}`,
+      'input-schemas',
+      featureKebab,
+    ),
+    presentationApiVersionObjectSchemasDir: path.join(
+      root,
+      'presentation',
+      'api',
+      `${version}`,
+      'object-schemas',
+    ),
+    presentationApiVersionObjectSchemaDir: path.join(
+      root,
+      'presentation',
+      'api',
+      `${version}`,
+      'object-schemas',
+      featureKebab,
     ),
   };
 
@@ -279,74 +369,161 @@ async function main() {
   );
 
   /********** 4. Presentation Layer (GraphQL) **********/
+  if (apiTypes.includes('GraphQL')) {
+    console.log(`🚀 Bắt đầu scaffold cho feature: ${Feature} GraphQL`);
+    // ---- input-types/create-<feature>.input-type.ts & update-<feature>.input-type.ts ---
+    await fs.ensureDir(paths.presentationGraphQLInputTypeDir);
+    writeNewFile(
+      path.join(
+        paths.presentationGraphQLInputTypeDir,
+        `create-${featureKebab}.input-type.ts`,
+      ),
+      graphQLInputTypeTs('Create', featureData),
+    );
+    writeNewFile(
+      path.join(
+        paths.presentationGraphQLInputTypeDir,
+        `update-${featureKebab}.input-type.ts`,
+      ),
+      graphQLInputTypeTs('Update', featureData),
+    );
+    writeNewFile(
+      path.join(paths.presentationGraphQLInputTypeDir, `${files.index}.ts`),
+      writeIndexTs([
+        `create-${featureKebab}.input-type`,
+        `update-${featureKebab}.input-type`,
+      ]),
+    );
+    await appendToIndex(
+      path.join(paths.presentationGraphQLInputTypesDir, `${files.index}.ts`),
+      [`export * from './${featureKebab}';`],
+    );
 
-  // ---- input-types/create-<feature>.input-type.ts & update-<feature>.input-type.ts ---
-  await fs.ensureDir(paths.presentationGraphQLInputTypeDir);
-  writeNewFile(
-    path.join(
-      paths.presentationGraphQLInputTypeDir,
-      `create-${featureKebab}.input-type.ts`,
-    ),
-    graphQLInputTypeTs('Create', featureData),
-  );
-  writeNewFile(
-    path.join(
-      paths.presentationGraphQLInputTypeDir,
-      `update-${featureKebab}.input-type.ts`,
-    ),
-    graphQLInputTypeTs('Update', featureData),
-  );
-  writeNewFile(
-    path.join(paths.presentationGraphQLInputTypeDir, `${files.index}.ts`),
-    writeIndexTs([
-      `create-${featureKebab}.input-type`,
-      `update-${featureKebab}.input-type`,
-    ]),
-  );
-  await appendToIndex(
-    path.join(paths.presentationGraphQLInputTypesDir, `${files.index}.ts`),
-    [`export * from './${featureKebab}';`],
-  );
+    // ---- object-types/<feature>.object-type.ts ---
+    await fs.ensureDir(paths.presentationGraphQLObjectTypeDir);
+    writeNewFile(
+      path.join(
+        paths.presentationGraphQLObjectTypeDir,
+        `${featureKebab}.object-type.ts`,
+      ),
+      graphQLObjectTypeTs(featureData),
+    );
+    writeNewFile(
+      path.join(paths.presentationGraphQLObjectTypeDir, `${files.index}.ts`),
+      writeIndexTs([`${featureKebab}.object-type`]),
+    );
+    await appendToIndex(
+      path.join(paths.presentationGraphQLObjectTypesDir, `${files.index}.ts`),
+      [`export * from './${featureKebab}';`],
+    );
 
-  // ---- object-types/<feature>.object-type.ts ---
-  await fs.ensureDir(paths.presentationGraphQLObjectTypeDir);
-  writeNewFile(
-    path.join(
-      paths.presentationGraphQLObjectTypeDir,
-      `${featureKebab}.object-type.ts`,
-    ),
-    graphQLObjectTypeTs(featureData),
-  );
-  writeNewFile(
-    path.join(paths.presentationGraphQLObjectTypeDir, `${files.index}.ts`),
-    writeIndexTs([`${featureKebab}.object-type`]),
-  );
-  await appendToIndex(
-    path.join(paths.presentationGraphQLObjectTypesDir, `${files.index}.ts`),
-    [`export * from './${featureKebab}';`],
-  );
+    // ---- resolvers/<feature>.resolver.ts ---
+    await fs.ensureDir(paths.presentationGraphQLResolversDir);
+    writeNewFile(
+      path.join(
+        paths.presentationGraphQLResolversDir,
+        `${featureKebab}.resolver.ts`,
+      ),
+      graphQLResolverTs(featureData),
+    );
+    await appendToIndex(
+      path.join(paths.presentationGraphQLResolversDir, 'index.ts'),
+      [`export * from './${featureKebab}.resolver';`],
+    );
 
-  // ---- resolvers/<feature>.resolver.ts ---
-  await fs.ensureDir(paths.presentationGraphQLResolversDir);
-  writeNewFile(
-    path.join(
-      paths.presentationGraphQLResolversDir,
-      `${featureKebab}.resolver.ts`,
-    ),
-    graphQLResolverTs(featureData),
-  );
-  await appendToIndex(
-    path.join(paths.presentationGraphQLResolversDir, 'index.ts'),
-    [`export * from './${featureKebab}.resolver';`],
-  );
+    /********** 5. Update GraphqlModule **********/
+    const graphqlModulePath = path.join(
+      paths.presentationGraphQLDir,
+      'graphql.module.ts',
+    );
+    await updateGraphqlModule(graphqlModulePath, featureData);
+  }
+  if (apiTypes.includes('REST')) {
+    console.log(
+      `🚀 Bắt đầu scaffold cho feature: ${Feature} với API types: ${apiTypes.join(', ')}${
+        restVersion ? `, REST version: ${restVersion}` : ''
+      }`,
+    );
 
-  /********** 5. Update GraphqlModule **********/
-  const graphqlModulePath = path.join(
-    paths.presentationGraphQLDir,
-    'graphql.module.ts',
-  );
-  await updateGraphqlModule(graphqlModulePath, featureData);
+    // ---- input-schemas/<feature>/create-<feature>.input-schema.ts & update-<feature>.input-schema.ts ---
+    await fs.ensureDir(paths.presentationApiVersionInputSchemaDir);
+    writeNewFile(
+      path.join(
+        paths.presentationApiVersionInputSchemaDir,
+        `create-${featureKebab}.input-schema.ts`,
+      ),
+      restApiInputSchemaTs('Create', featureData),
+    );
+    writeNewFile(
+      path.join(
+        paths.presentationApiVersionInputSchemaDir,
+        `update-${featureKebab}.input-schema.ts`,
+      ),
+      restApiInputSchemaTs('Update', featureData),
+    );
+    writeNewFile(
+      path.join(
+        paths.presentationApiVersionInputSchemaDir,
+        `${files.index}.ts`,
+      ),
+      writeIndexTs([
+        `create-${featureKebab}.input-schema`,
+        `update-${featureKebab}.input-schema`,
+      ]),
+    );
+    await appendToIndex(
+      path.join(
+        paths.presentationApiVersionInputSchemasDir,
+        `${files.index}.ts`,
+      ),
+      [`export * from './${featureKebab}';`],
+    );
 
+    // ---- object-schemas/<feature>.object-schema.ts ---
+    await fs.ensureDir(paths.presentationApiVersionObjectSchemaDir);
+    writeNewFile(
+      path.join(
+        paths.presentationApiVersionObjectSchemaDir,
+        `${featureKebab}.object-schema.ts`,
+      ),
+      graphQLObjectTypeTs(featureData),
+    );
+    writeNewFile(
+      path.join(
+        paths.presentationApiVersionObjectSchemaDir,
+        `${files.index}.ts`,
+      ),
+      writeIndexTs([`${featureKebab}.object-schema`]),
+    );
+    await appendToIndex(
+      path.join(
+        paths.presentationApiVersionObjectsSchemaDir,
+        `${files.index}.ts`,
+      ),
+      [`export * from './${featureKebab}';`],
+    );
+
+    // ---- controllers/<feature>.controller.ts ---
+    await fs.ensureDir(paths.presentationApiVersionControllersDir);
+    writeNewFile(
+      path.join(
+        paths.presentationApiVersionControllersDir,
+        `${featureKebab}.controller.ts`,
+      ),
+      graphQLResolverTs(featureData),
+    );
+    await appendToIndex(
+      path.join(paths.presentationApiVersionControllersDir, 'index.ts'),
+      [`export * from './${featureKebab}.controller';`],
+    );
+
+    /********** 5. Update GraphqlModule **********/
+    const apiVersionModulePath = path.join(
+      paths.presentationApiVersionDir,
+      `api-${version}.module.ts`,
+    );
+    await updateApiVersionModule(apiVersionModulePath, featureData);
+  }
   console.log(`✅ Scaffold cho ${Feature} đã được tạo thành công.`);
 }
 
@@ -370,9 +547,14 @@ async function appendToIndex(indexPath, lines) {
   console.log(`✔️  Updated ${indexPath}`);
 }
 
-function writeNewFile(file, data) {
-  fs.writeFileSync(file, data);
-  console.log(`✔️  Created ${file}`);
+async function writeNewFile(filePath, data) {
+  if (await fs.pathExists(filePath)) {
+    console.log(`⚠️  Skipped, already exists: ${filePath}`);
+    return;
+  }
+  fs.ensureDirSync(path.dirname(filePath));
+  fs.writeFileSync(filePath, data);
+  console.log(`✔️  Created ${filePath}`);
 }
 
 /** ============= Templates =========== **/
@@ -799,5 +981,220 @@ async function updateGraphqlModule(pathFile, { Feature, feature }) {
   console.log(`✅ Đã thêm ${resolverName} & ${appModuleName} vào ${pathFile}`);
 
   // --- Tự động format lại file bằng Prettier (đồng bộ) ---
+  await formatWithPrettierSync(pathFile);
+}
+
+/********* PRESENTATION LAYER (REST API) *********/
+function restApiInputSchemaTs(prefix, { Feature, feature, featureKebab }) {
+  return `import { MongooseBaseObjectSchema } from '@infrastructure/mongoose';
+import { ApiProperty } from '@nestjs/swagger';
+
+export class ${prefix}${Feature}InputSchema extends MongooseBaseObjectSchema {
+  @ApiProperty({
+    description: 'Name of ${Feature}',
+    example: 'Name',
+  })
+  name!: string;
+}
+`;
+}
+function restApiObjectSchemaTs({ Feature, feature, featureKebab }) {
+  return `import { MongooseBaseObjectSchema } from '@infrastructure/mongoose';
+import { ApiProperty } from '@nestjs/swagger';
+
+export class ${Feature}ObjectSchema extends MongooseBaseObjectSchema {
+  @ApiProperty({
+    description: 'Name of ${Feature}',
+    example: 'Name',
+  })
+  name!: string;
+}`;
+}
+
+function restApiControllerTs({
+  Feature,
+  feature,
+  featureKebab,
+  version,
+  Version,
+}) {
+  return `import {
+  Fetch${Feature}UseCase,
+  GetOne${Feature}ByConditionUseCase,
+  Create${Feature}UseCase,
+  UpdateOne${Feature}ByConditionUseCase,
+  DeleteOne${Feature}ByConditionUseCase,
+} from '@application';
+import {
+  Controller,
+  Get,
+  Query,
+  Param,
+  Post,
+  Body,
+  Patch,
+  Delete,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBody } from '@nestjs/swagger';
+import {
+  ApiResponsePaginationObjectSchema,
+  ApiResponseObjectSchema,
+  ApiAuthRequired,
+} from '@shared/decorators/swagger';
+import {
+  QueryGetListInputSchema,
+  Create${Feature}InputSchema,
+  Update${Feature}InputSchema,
+} from '../input-schemas';
+import { ${Feature}ObjectSchema } from '../object-schemas';
+
+@ApiTags('${Feature}')
+@Controller('api/${version}/${featureKebab}')
+export class ${Feature}${Version}Controller {
+  constructor(
+    private readonly fetch${Feature}UseCase: Fetch${Feature}UseCase,
+    private readonly getOne${Feature}ByConditionUseCase: GetOne${Feature}ByConditionUseCase,
+    private readonly create${Feature}UseCase: Create${Feature}UseCase,
+    private readonly updateOne${Feature}ByConditionUseCase: UpdateOne${Feature}ByConditionUseCase,
+    private readonly deleteOne${Feature}ByConditionUseCase: DeleteOne${Feature}ByConditionUseCase,
+  ) {}
+
+  @Get()
+  @ApiAuthRequired()
+  @ApiOperation({ summary: 'Get All ${Feature}' })
+  @ApiResponsePaginationObjectSchema(${Feature}ObjectSchema)
+  async getAll${Feature}(@Query() queryGetListInput: QueryGetListInputSchema) {
+    console.log('queryGetListInput', queryGetListInput);
+    return await this.fetch${Feature}UseCase.execute(queryGetListInput);
+  }
+
+  @Get(':_id')
+  @ApiOperation({ summary: 'Get One ${Feature}' })
+  @ApiResponseObjectSchema(${Feature}ObjectSchema)
+  async getOne${Feature}ById(@Param('_id') _id: string) {
+    return this.getOne${Feature}ByConditionUseCase.execute({ _id });
+  }
+
+  @Post()
+  @ApiOperation({ summary: 'Create One ${Feature}' })
+  @ApiResponseObjectSchema(${Feature}ObjectSchema)
+  async create${Feature}(@Body() data: Create${Feature}InputSchema) {
+    return this.create${Feature}UseCase.execute(data);
+  }
+
+  @Patch(':_id')
+  @ApiOperation({ summary: 'Update One ${Feature}' })
+  @ApiBody({ type: Update${Feature}InputSchema })
+  @ApiResponseObjectSchema(${Feature}ObjectSchema)
+  async updateOne${Feature}ById(
+    @Param('_id') _id: string,
+    @Body() data: Update${Feature}InputSchema,
+  ) {
+    return this.updateOne${Feature}ByConditionUseCase.execute({ _id }, data);
+  }
+
+  @Delete(':_id')
+  @ApiOperation({ summary: 'Delete One ${Feature}' })
+  @ApiResponseObjectSchema(${Feature}ObjectSchema)
+  async deleteOne${Feature}ById(@Param('_id') _id: string) {
+    return this.deleteOne${Feature}ByConditionUseCase.execute({ _id });
+  }
+}`;
+}
+export async function updateApiVersionModule(
+  pathFile,
+  { Feature, featureKebab, Version },
+) {
+  const project = new Project({
+    tsConfigFilePath: path.resolve(__dirname, '../tsconfig.json'),
+  });
+  const sourceFile = project.getSourceFileOrThrow(pathFile);
+
+  const controllerName = `${Feature}${Version}Controller`;
+  const appModuleName = `Application${Feature}Module`;
+
+  // --- Import controller from ./controllers/<feature>.controller.ts ---
+  let ctrlImport = sourceFile.getImportDeclaration((d) =>
+    d.getModuleSpecifierValue().startsWith('./controllers'),
+  );
+  if (ctrlImport) {
+    const names = ctrlImport.getNamedImports().map((n) => n.getName());
+    if (!names.includes(controllerName)) {
+      ctrlImport.addNamedImport(controllerName);
+    }
+  } else {
+    sourceFile.addImportDeclaration({
+      namedImports: [controllerName],
+      moduleSpecifier: `./controllers/${featureKebab}.controller`,
+      quoteKind: QuoteKind.Single,
+    });
+  }
+
+  // --- Import application module from '@application' ---
+  let appImport = sourceFile.getImportDeclaration(
+    (d) => d.getModuleSpecifierValue() === '@application',
+  );
+  if (appImport) {
+    const names = appImport.getNamedImports().map((n) => n.getName());
+    if (!names.includes(appModuleName)) {
+      appImport.addNamedImport(appModuleName);
+    }
+  } else {
+    sourceFile.addImportDeclaration({
+      namedImports: [appModuleName],
+      moduleSpecifier: '@application',
+      quoteKind: QuoteKind.Single,
+    });
+  }
+
+  // --- Update @Module decorator ---
+  const classDecl = sourceFile
+    .getClasses()
+    .find((c) => c.getName()?.endsWith('Module'));
+  if (!classDecl) {
+    throw new Error('No Module class found in ' + pathFile);
+  }
+  const modDec = classDecl.getDecoratorOrThrow('Module');
+  const objLit = modDec
+    .getArguments()[0]
+    .asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+
+  // controllers array
+  const controllersProp = objLit.getProperty('controllers');
+  if (!controllersProp) {
+    objLit.addPropertyAssignment({
+      name: 'controllers',
+      initializer: `[${controllerName}]`,
+    });
+  } else {
+    const arr = controllersProp.getInitializerIfKindOrThrow(
+      SyntaxKind.ArrayLiteralExpression,
+    );
+    if (!arr.getElements().some((e) => e.getText() === controllerName)) {
+      arr.addElement(controllerName);
+    }
+  }
+
+  // imports array
+  const importsProp = objLit.getProperty('imports');
+  if (!importsProp) {
+    objLit.addPropertyAssignment({
+      name: 'imports',
+      initializer: `[${appModuleName}]`,
+    });
+  } else {
+    const arr = importsProp.getInitializerIfKindOrThrow(
+      SyntaxKind.ArrayLiteralExpression,
+    );
+    if (!arr.getElements().some((e) => e.getText() === appModuleName)) {
+      arr.addElement(appModuleName);
+    }
+  }
+
+  // Save and format
+  sourceFile.saveSync();
+  console.log(
+    `✅ Đã thêm ${controllerName} & ${appModuleName} vào ${pathFile}`,
+  );
   await formatWithPrettierSync(pathFile);
 }

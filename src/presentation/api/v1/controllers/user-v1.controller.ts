@@ -27,7 +27,6 @@ import {
   UpdateUserInputSchema,
 } from '../input-schemas';
 import { UserObjectSchema } from '../object-schemas';
-import { AuthApi } from '@shared/decorators';
 
 @ApiTags('User')
 @Controller('api/v1/user')
