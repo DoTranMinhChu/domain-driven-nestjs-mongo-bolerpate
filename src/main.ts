@@ -21,7 +21,13 @@ async function bootstrap() {
   SwaggerModule.setup('openapi', app, document, {
     swaggerOptions: {
       operationsSorter: function (a: any, b: any) {
-        var order: any = { get: '0', post: '1', put: '2', delete: '3' };
+        var order: any = {
+          get: '0',
+          post: '1',
+          patch: '2',
+          put: '3',
+          delete: '4',
+        };
         return order[a.get('method')].localeCompare(order[b.get('method')]);
       },
       apisSorter: 'alpha',

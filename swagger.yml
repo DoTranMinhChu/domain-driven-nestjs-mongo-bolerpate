@@ -9,46 +9,169 @@ paths:
           description: ''
       tags:
         - App
+  /api/v1/user:
+    get:
+      operationId: UserV1Controller_getAllUser
+      parameters:
+        - name: limit
+          required: false
+          in: query
+          schema:
+            example: 10
+            type: number
+        - name: page
+          required: false
+          in: query
+          schema:
+            example: 1
+            type: number
+        - name: order
+          required: false
+          in: query
+          schema:
+            example:
+              createdAt: DESC
+            type: string
+        - name: filter
+          required: false
+          in: query
+          schema:
+            example: '{"isActivated":true}'
+            type: string
+        - name: search
+          required: false
+          in: query
+          schema:
+            example: keyword
+            type: string
+      responses:
+        '200':
+          description: Paginated result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/UserObjectSchema'
+                      total:
+                        type: number
+                        example: 100
+                      pagination:
+                        type: object
+                        properties:
+                          page:
+                            type: number
+                            example: 1
+                          limit:
+                            type: number
+                            example: 10
+                          offset:
+                            type: number
+                            example: 0
+                          total:
+                            type: number
+                            example: 100
+      summary: Get All User
+      tags: &ref_0
+        - User
+    post:
+      operationId: UserV1Controller_createUser
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserInputSchema'
+      responses:
+        '200':
+          description: Single item response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserObjectSchema'
+      summary: Create One User
+      tags: *ref_0
+  /api/v1/user/{_id}:
+    get:
+      operationId: UserV1Controller_getOneUserById
+      parameters:
+        - name: _id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Single item response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserObjectSchema'
+      summary: Get One User
+      tags: *ref_0
+    patch:
+      operationId: UserV1Controller_updateOneUserById
+      parameters:
+        - name: _id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserInputSchema'
+      responses:
+        '200':
+          description: Single item response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserObjectSchema'
+      summary: Update One User
+      tags: *ref_0
+    delete:
+      operationId: UserV1Controller_deleteOneUserById
+      parameters:
+        - name: _id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Single item response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserObjectSchema'
+      summary: Delete One User
+      tags: *ref_0
 info:
   title: Documention API
   description: >-
-    <h3>Specifying attributes for SELECT queries</h3><p> - To select only some
-    attributes, you can use the <code>fields</code> option:</p> <ul>    
-    <li><mark>"$all"</mark> query to all record (with out record is soft
-    deleted)         <ul>             <li>fields=["$all"]</li>         </ul>    
-    </li>     <li><mark>"$paranoid"</mark> query to all including record is
-    deleted_at         <ul>             <li>fields=["$paranoid"]</li>        
-    </ul>     </li>     <li><mark>"field_name"</mark> retrieve only field
-    "field_name" in the table         <ul>            
-    <li>fields=["field_a"]</li>            
-    <li>fields=["field_a","field_b"]</li>         </ul>     </li>    
-    <li><mark>{"other_table":["$all"]}</mark> is alias to "other_table"        
-    <ul>             <li>fields=[ "$all", { "table_a" : ["$all"] }
-    ]</li>             <li>fields=[ "$all", { "table_b" : ["field_a", "field_b"]
-    } ]</li>         </ul>     </li> </ul><h3>Applying WHERE clauses</h3><p> -
-    The <code>where</code> is used to filter records. It is used to extract only
-    those records that fulfill a specified condition.</p> <ul>    
-    <li><mark>"$eq"</mark> is equal (field == value)         <ul>            
-    <li>where={ "field_a" : { "$eq" : 100} }</li>             <li>where={
-    "field_b" : { "$eq" : "abc" } }</li>             <li>where={ "field_a" : {
-    "$eq" : 100 }, "field_b" : { "$eq" : "abc" } }</li>         </ul>    
-    </li>     <li><mark>"$ne"</mark> is equal (field != value)        
-    <ul>             <li>where={ "field_a" : { "$ne" : 100} }</li>            
-    <li>where={ "field_a" : { "$ne" : 100 }, "field_b" : { "$ne" : "abc" }
-    }</li>         </ul>     </li> </ul> Some other operators : <mark>$gt</mark>
-    <mark>$gte</mark> <mark>$lt</mark> <mark>$lte</mark> <mark>$and</mark>
-    <mark>$or</mark> <mark>$in</mark> <mark>$notIn</mark> <mark>$like</mark>
-    <mark>$iLike</mark> ....<h3>Ordering</h3><p> - The <code>order</code> option
-    takes an array of items to order the query by or a sequelize method. These
-    <em>items</em> are themselves arrays in the form <code>[column,
-    direction]</code>. The column will be escaped correctly and the direction
-    will be checked in a whitelist of valid directions (such as
-    <code>ASC</code>, <code>DESC</code>, <code>NULLS FIRST</code>, etc).</p>
-    <ul>   <li>order=[["created_at","DESC"]]</li>  
-    <li>order=[["created_at","DESC"],["id","ASC"]]</li> </ul><h3>Limits and
-    Pagination</h3><p> - The <code>limit</code> and <code>page</code> options
-    allow you to work with limiting / pagination:</p> <ul>  
-    <li>limit=50&page=1</li>   <li>limit=50&page=2</li> </ul>
+    <h3>📋 Query Parameters Usage</h3> <ul> <li>
+    <strong><code>search</code></strong><br/> Tìm kiếm tổng quát trên các trường
+    văn bản (ví dụ: email, tên).<br/> Ví dụ: <code>?search=john</code> sẽ trả về
+    tất cả bản ghi chứa "john". </li> <li>
+    <strong><code>filter</code></strong><br/> Lọc chi tiết bằng JSON với các
+    toán tử:<br/> <code>$eq</code>, <code>$ne</code>, <code>$gt</code>,
+    <code>$gte</code>, <code>$lt</code>, <code>$lte</code>, <code>$in</code>,
+    <code>$nin</code>, <code>$or</code>, <code>$and</code>.<br/> Ví dụ:
+    <code>?filter={"age":{"$gte":18},"status":{"$eq":"active"}}</code> </li>
+    <li> <strong><code>limit</code></strong><br/> Số bản ghi trên mỗi trang. Mặc
+    định 10.<br/> Ví dụ: <code>?limit=20</code> </li> <li>
+    <strong><code>page</code></strong><br/> Số trang (bắt đầu từ 1).<br/> Ví dụ:
+    <code>?page=2&amp;limit=20</code> sẽ trả bản ghi từ 21–40. </li> <li>
+    <strong><code>sort</code></strong><br/> Sắp xếp theo trường, tiền tố
+    <code>-</code> cho giảm dần.<br/> Ví dụ: <code>?sort={"createdAt":-1}</code>
+    hoặc <code>?sort={"createdAt":1}</code> </li> </ul>
   version: '1.0'
   contact: {}
 tags: []
@@ -60,4 +183,106 @@ components:
       bearerFormat: JWT
       name: Access token
       type: http
-  schemas: {}
+  schemas:
+    ObjectId:
+      type: object
+      properties: {}
+    UserObjectSchema:
+      type: object
+      properties:
+        _id:
+          description: ID (Mongo ObjectID)
+          example: 507f191e810c19729de860ea
+          allOf:
+            - $ref: '#/components/schemas/ObjectId'
+        createdAt:
+          format: date-time
+          type: string
+          description: Thời gian tạo
+          example: '2025-05-30T12:34:56.789Z'
+        updatedAt:
+          format: date-time
+          type: string
+          description: Thời gian cập nhật mới nhất
+          example: '2025-05-31T08:22:33.123Z'
+        deletedAt:
+          format: date-time
+          type: string
+          description: Thời gian xoá (nếu đã soft-delete)
+          example: null
+          nullable: true
+        name:
+          type: string
+          description: Tên bài viết
+          example: Hướng dẫn sử dụng NestJS
+      required:
+        - _id
+        - createdAt
+        - updatedAt
+        - name
+    CreateUserInputSchema:
+      type: object
+      properties:
+        _id:
+          description: ID (Mongo ObjectID)
+          example: 507f191e810c19729de860ea
+          allOf:
+            - $ref: '#/components/schemas/ObjectId'
+        createdAt:
+          format: date-time
+          type: string
+          description: Thời gian tạo
+          example: '2025-05-30T12:34:56.789Z'
+        updatedAt:
+          format: date-time
+          type: string
+          description: Thời gian cập nhật mới nhất
+          example: '2025-05-31T08:22:33.123Z'
+        deletedAt:
+          format: date-time
+          type: string
+          description: Thời gian xoá (nếu đã soft-delete)
+          example: null
+          nullable: true
+        name:
+          type: string
+          description: Tên bài viết
+          example: Hướng dẫn sử dụng NestJS
+      required:
+        - _id
+        - createdAt
+        - updatedAt
+        - name
+    UpdateUserInputSchema:
+      type: object
+      properties:
+        _id:
+          description: ID (Mongo ObjectID)
+          example: 507f191e810c19729de860ea
+          allOf:
+            - $ref: '#/components/schemas/ObjectId'
+        createdAt:
+          format: date-time
+          type: string
+          description: Thời gian tạo
+          example: '2025-05-30T12:34:56.789Z'
+        updatedAt:
+          format: date-time
+          type: string
+          description: Thời gian cập nhật mới nhất
+          example: '2025-05-31T08:22:33.123Z'
+        deletedAt:
+          format: date-time
+          type: string
+          description: Thời gian xoá (nếu đã soft-delete)
+          example: null
+          nullable: true
+        name:
+          type: string
+          description: Tên bài viết
+          example: Hướng dẫn sử dụng NestJS
+      required:
+        - _id
+        - createdAt
+        - updatedAt
+        - name

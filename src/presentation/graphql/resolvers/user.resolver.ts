@@ -29,7 +29,7 @@ export class UserResolver {
   @Query(() => UserPaginateObjectType)
   @GraphqlAuthApi()
   @GraphqlAccountType([])
-  async getAllUsers(
+  async getAllUser(
     @Args(QueryGetListInputType.name, { nullable: true })
     queryGetListInput: QueryGetListInputType,
   ) {

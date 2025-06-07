@@ -14,7 +14,7 @@ class MongooseBaseSchema {
 
   createdAt!: Date;
 
-  updatedAt?: Date;
+  updatedAt!: Date;
 
   @Prop({ default: null })
   deletedAt?: Date;
