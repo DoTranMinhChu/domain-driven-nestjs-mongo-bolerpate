@@ -28,7 +28,7 @@ import {
 } from '../input-schemas';
 import { UserObjectSchema } from '../object-schemas';
 
-@ApiTags('User')
+@ApiTags('User V1')
 @Controller('api/v1/user')
 export class UserV1Controller {
   constructor(
