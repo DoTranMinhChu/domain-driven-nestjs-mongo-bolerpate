@@ -8,11 +8,12 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { AllExceptionsFilter } from '@shared/filters';
 import { AuthGuard, AccountTypesGuard } from '@shared/guards';
 import { JwtModule } from '@nestjs/jwt';
-import { ApiV1lModule } from '@presentation/api/v1/api-v1.module';
+import { ApiModule } from '@presentation/api/api.module';
+
 @Module({
   imports: [
     GraphqlModule,
-    ApiV1lModule,
+    ApiModule,
     JwtModule,
     EnvironmentConfig,
     MongooseConfig,

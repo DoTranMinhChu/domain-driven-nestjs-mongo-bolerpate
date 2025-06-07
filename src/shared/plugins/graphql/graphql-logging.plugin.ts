@@ -20,6 +20,7 @@ export class GraphqlLoggingPlugin implements ApolloServerPlugin {
     requestContext: GraphQLRequestContext,
   ): Promise<GraphQLRequestListener> {
     const thatLogger = this.logger;
+
     if (requestContext.request.operationName !== 'IntrospectionQuery') {
       const requestId = this.generateRequestId();
       _.set(requestContext.request, 'requestId', requestId);

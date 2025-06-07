@@ -18,7 +18,7 @@ export class QueryGetListInputSchema {
   @ApiProperty({
     required: false,
     type: 'string',
-    example: { createdAt: 'DESC' },
+    example: JSON.stringify({ createdAt: -1 }),
   })
   @IsOptional()
   order?: Record<string, any>;

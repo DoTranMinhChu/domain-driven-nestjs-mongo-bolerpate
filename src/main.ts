@@ -14,6 +14,7 @@ async function bootstrap() {
       origin: '*',
     },
   });
+
   // ================ [START] Swagger setup [START] ================
 
   const document = SwaggerModule.createDocument(app, configSwagger, {});

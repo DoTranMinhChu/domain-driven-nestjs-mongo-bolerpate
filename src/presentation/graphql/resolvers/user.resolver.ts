@@ -4,6 +4,8 @@ import {
   CreateUserUseCase,
   UpdateOneUserByConditionUseCase,
   DeleteOneUserByConditionUseCase,
+  UserLoginUseCase,
+  UserRegistrationUseCase,
 } from '@application';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { GraphqlAuthApi, GraphqlAccountType } from '@shared/decorators';
@@ -13,8 +15,15 @@ import {
   CreateUserInputType,
   UpdateUserInputType,
   QueryGetListInputType,
+  UserLoginInputType,
+  UserRegistrationInputType,
 } from '../input-types';
-import { UserObjectType, UserPaginateObjectType } from '../object-types';
+import {
+  UserLoginObjectType,
+  UserObjectType,
+  UserPaginateObjectType,
+} from '../object-types';
+import { EAccountType } from '@shared/enums';
 
 @Resolver(UserObjectType)
 export class UserResolver {
@@ -24,11 +33,13 @@ export class UserResolver {
     private readonly createUserUseCase: CreateUserUseCase,
     private readonly updateOneUserByConditionUseCase: UpdateOneUserByConditionUseCase,
     private readonly deleteOneUserByConditionUseCase: DeleteOneUserByConditionUseCase,
+    private readonly userLoginUseCase: UserLoginUseCase,
+    private readonly userRegistrationUseCase: UserRegistrationUseCase,
   ) {}
 
   @Query(() => UserPaginateObjectType)
   @GraphqlAuthApi()
-  @GraphqlAccountType([])
+  @GraphqlAccountType([EAccountType.ADMIN])
   async getAllUser(
     @Args(QueryGetListInputType.name, { nullable: true })
     queryGetListInput: QueryGetListInputType,
@@ -38,21 +49,21 @@ export class UserResolver {
 
   @Query(() => UserObjectType)
   @GraphqlAuthApi()
-  @GraphqlAccountType([])
+  @GraphqlAccountType([EAccountType.ADMIN])
   async getOneUserById(@_idArg() _id: string) {
     return this.getOneUserByConditionUseCase.execute({ _id });
   }
 
   @Mutation(() => UserObjectType)
   @GraphqlAuthApi()
-  @GraphqlAccountType([])
+  @GraphqlAccountType([EAccountType.ADMIN])
   async createUser(@DataArg() data: CreateUserInputType) {
     return this.createUserUseCase.execute(data);
   }
 
   @Mutation(() => UserObjectType)
   @GraphqlAuthApi()
-  @GraphqlAccountType([])
+  @GraphqlAccountType([EAccountType.ADMIN])
   async updateOneUserById(
     @_idArg() _id: string,
     @DataArg() data: UpdateUserInputType,
@@ -62,8 +73,18 @@ export class UserResolver {
 
   @Mutation(() => UserObjectType)
   @GraphqlAuthApi()
-  @GraphqlAccountType([])
+  @GraphqlAccountType([EAccountType.ADMIN])
   async deleteOneUserById(@_idArg() _id: string) {
     return this.deleteOneUserByConditionUseCase.execute({ _id });
+  }
+
+  @Mutation(() => UserLoginObjectType)
+  async userLogin(@DataArg() data: UserLoginInputType) {
+    return this.userLoginUseCase.execute(data);
+  }
+
+  @Mutation(() => UserLoginObjectType)
+  async userRegistration(@DataArg() data: UserRegistrationInputType) {
+    return this.userRegistrationUseCase.execute(data);
   }
 }

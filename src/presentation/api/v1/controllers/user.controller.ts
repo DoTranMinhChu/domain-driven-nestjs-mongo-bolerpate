@@ -1,9 +1,9 @@
 import {
-  CreateUserUseCase,
-  DeleteOneUserByConditionUseCase,
   FetchUserUseCase,
   GetOneUserByConditionUseCase,
+  CreateUserUseCase,
   UpdateOneUserByConditionUseCase,
+  DeleteOneUserByConditionUseCase,
 } from '@application';
 import {
   Controller,
@@ -11,18 +11,23 @@ import {
   Query,
   Param,
   Post,
+  Body,
   Patch,
   Delete,
-  Body,
 } from '@nestjs/common';
-import { QueryGetListInputSchema } from '../input-schemas/base';
-import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBody } from '@nestjs/swagger/dist';
 import {
-  ApiResponseObjectSchema,
   ApiResponsePaginationObjectSchema,
+  ApiResponseObjectSchema,
+  ApiAuthRequired,
 } from '@shared/decorators/swagger';
+import {
+  QueryGetListInputSchema,
+  CreateUserInputSchema,
+  UpdateUserInputSchema,
+} from '../input-schemas';
 import { UserObjectSchema } from '../object-schemas';
-import { CreateUserInputSchema, UpdateUserInputSchema } from '../input-schemas';
+import { AuthApi } from '@shared/decorators';
 
 @ApiTags('User')
 @Controller('api/v1/user')
@@ -36,9 +41,11 @@ export class UserV1Controller {
   ) {}
 
   @Get()
+  @ApiAuthRequired()
   @ApiOperation({ summary: 'Get All User' })
   @ApiResponsePaginationObjectSchema(UserObjectSchema)
   async getAllUser(@Query() queryGetListInput: QueryGetListInputSchema) {
+    console.log('queryGetListInput', queryGetListInput);
     return await this.fetchUserUseCase.execute(queryGetListInput);
   }
 

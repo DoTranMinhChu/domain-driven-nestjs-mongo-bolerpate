@@ -29,8 +29,7 @@ paths:
           required: false
           in: query
           schema:
-            example:
-              createdAt: DESC
+            example: '{"createdAt":-1}'
             type: string
         - name: filter
           required: false
@@ -74,6 +73,8 @@ paths:
                           total:
                             type: number
                             example: 100
+      security:
+        - bearer: []
       summary: Get All User
       tags: &ref_0
         - User
@@ -213,8 +214,8 @@ components:
           nullable: true
         name:
           type: string
-          description: Tên bài viết
-          example: Hướng dẫn sử dụng NestJS
+          description: Name of user
+          example: Name
       required:
         - _id
         - createdAt
