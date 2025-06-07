@@ -154,6 +154,151 @@ paths:
                 $ref: '#/components/schemas/UserObjectSchema'
       summary: Delete One User
       tags: *ref_0
+  /api/v1/post:
+    get:
+      operationId: PostV1Controller_getAllPost
+      parameters:
+        - name: limit
+          required: false
+          in: query
+          schema:
+            example: 10
+            type: number
+        - name: page
+          required: false
+          in: query
+          schema:
+            example: 1
+            type: number
+        - name: order
+          required: false
+          in: query
+          schema:
+            example: '{"createdAt":-1}'
+            type: string
+        - name: filter
+          required: false
+          in: query
+          schema:
+            example: '{"isActivated":true}'
+            type: string
+        - name: search
+          required: false
+          in: query
+          schema:
+            example: keyword
+            type: string
+      responses:
+        '200':
+          description: Paginated result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PostObjectSchema'
+                      total:
+                        type: number
+                        example: 100
+                      pagination:
+                        type: object
+                        properties:
+                          page:
+                            type: number
+                            example: 1
+                          limit:
+                            type: number
+                            example: 10
+                          offset:
+                            type: number
+                            example: 0
+                          total:
+                            type: number
+                            example: 100
+      security:
+        - bearer: []
+      summary: Get All Post
+      tags: &ref_1
+        - Post V1
+    post:
+      operationId: PostV1Controller_createPost
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePostInputSchema'
+      responses:
+        '200':
+          description: Single item response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostObjectSchema'
+      summary: Create One Post
+      tags: *ref_1
+  /api/v1/post/{_id}:
+    get:
+      operationId: PostV1Controller_getOnePostById
+      parameters:
+        - name: _id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Single item response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostObjectSchema'
+      summary: Get One Post
+      tags: *ref_1
+    patch:
+      operationId: PostV1Controller_updateOnePostById
+      parameters:
+        - name: _id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePostInputSchema'
+      responses:
+        '200':
+          description: Single item response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostObjectSchema'
+      summary: Update One Post
+      tags: *ref_1
+    delete:
+      operationId: PostV1Controller_deleteOnePostById
+      parameters:
+        - name: _id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Single item response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostObjectSchema'
+      summary: Delete One Post
+      tags: *ref_1
 info:
   title: Documention API
   description: >-
@@ -282,6 +427,105 @@ components:
           type: string
           description: Tên bài viết
           example: Hướng dẫn sử dụng NestJS
+      required:
+        - _id
+        - createdAt
+        - updatedAt
+        - name
+    PostObjectSchema:
+      type: object
+      properties:
+        _id:
+          description: ID (Mongo ObjectID)
+          example: 507f191e810c19729de860ea
+          allOf:
+            - $ref: '#/components/schemas/ObjectId'
+        createdAt:
+          format: date-time
+          type: string
+          description: Thời gian tạo
+          example: '2025-05-30T12:34:56.789Z'
+        updatedAt:
+          format: date-time
+          type: string
+          description: Thời gian cập nhật mới nhất
+          example: '2025-05-31T08:22:33.123Z'
+        deletedAt:
+          format: date-time
+          type: string
+          description: Thời gian xoá (nếu đã soft-delete)
+          example: null
+          nullable: true
+        name:
+          type: string
+          description: Name of Post
+          example: Name
+      required:
+        - _id
+        - createdAt
+        - updatedAt
+        - name
+    CreatePostInputSchema:
+      type: object
+      properties:
+        _id:
+          description: ID (Mongo ObjectID)
+          example: 507f191e810c19729de860ea
+          allOf:
+            - $ref: '#/components/schemas/ObjectId'
+        createdAt:
+          format: date-time
+          type: string
+          description: Thời gian tạo
+          example: '2025-05-30T12:34:56.789Z'
+        updatedAt:
+          format: date-time
+          type: string
+          description: Thời gian cập nhật mới nhất
+          example: '2025-05-31T08:22:33.123Z'
+        deletedAt:
+          format: date-time
+          type: string
+          description: Thời gian xoá (nếu đã soft-delete)
+          example: null
+          nullable: true
+        name:
+          type: string
+          description: Name of Post
+          example: Name
+      required:
+        - _id
+        - createdAt
+        - updatedAt
+        - name
+    UpdatePostInputSchema:
+      type: object
+      properties:
+        _id:
+          description: ID (Mongo ObjectID)
+          example: 507f191e810c19729de860ea
+          allOf:
+            - $ref: '#/components/schemas/ObjectId'
+        createdAt:
+          format: date-time
+          type: string
+          description: Thời gian tạo
+          example: '2025-05-30T12:34:56.789Z'
+        updatedAt:
+          format: date-time
+          type: string
+          description: Thời gian cập nhật mới nhất
+          example: '2025-05-31T08:22:33.123Z'
+        deletedAt:
+          format: date-time
+          type: string
+          description: Thời gian xoá (nếu đã soft-delete)
+          example: null
+          nullable: true
+        name:
+          type: string
+          description: Name of Post
+          example: Name
       required:
         - _id
         - createdAt

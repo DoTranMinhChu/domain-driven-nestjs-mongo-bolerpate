@@ -511,13 +511,13 @@ async function main() {
     writeNewFile(
       path.join(
         paths.presentationApiVersionControllersDir,
-        `${featureKebab}.controller.ts`,
+        `${featureKebab}-${version}.controller.ts`,
       ),
       restApiControllerTs(featureData),
     );
     await appendToIndex(
       path.join(paths.presentationApiVersionControllersDir, 'index.ts'),
-      [`export * from './${featureKebab}.controller';`],
+      [`export * from './${featureKebab}-${version}.controller';`],
     );
 
     /********** 5. Update GraphqlModule **********/
@@ -1051,7 +1051,7 @@ import {
 } from '../input-schemas';
 import { ${Feature}ObjectSchema } from '../object-schemas';
 
-@ApiTags('${Feature}')
+@ApiTags('${Feature} ${Version}')
 @Controller('api/${version}/${featureKebab}')
 export class ${Feature}${Version}Controller {
   constructor(
