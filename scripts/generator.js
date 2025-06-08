@@ -56,8 +56,28 @@ async function formatWithPrettierSync(filePath) {
     console.error(`❌ Prettier formatting failed for ${filePath}:`, err);
   }
 }
-
 async function main() {
+  // 1) Hỏi loại generator
+  const typeAnswer = await prompt([
+    {
+      type: 'list',
+      name: 'generatorType',
+      message: 'Chọn loại generator:',
+      choices: [
+        { name: 'Feature (DDD layers)', value: 'feature' },
+        { name: 'Event (Publisher + Listener)', value: 'event' },
+      ],
+    },
+  ]);
+
+  if (typeAnswer.generatorType === 'feature') {
+    await generateFeature();
+  } else if (typeAnswer.generatorType === 'event') {
+    await generateEvent();
+  }
+}
+
+async function generateFeature() {
   // 1) Hỏi tên feature nếu không có tham số CLI
   let inputName = null;
 
@@ -528,6 +548,83 @@ async function main() {
     await updateApiVersionModule(apiVersionModulePath, featureData);
   }
   console.log(`✅ Scaffold cho ${Feature} đã được tạo thành công.`);
+}
+
+async function generateEvent() {
+  // 2) Hỏi tên Event và Key
+  const eventAnswers = await prompt([
+    {
+      type: 'input',
+      name: 'eventName',
+      message: 'Nhập tên Event (ví dụ: PostCreated):',
+      validate: (val) => {
+        if (!val || val.trim().length === 0) {
+          return 'Tên Event không được để trống';
+        }
+        return true;
+      },
+    },
+    {
+      type: 'input',
+      name: 'eventKey',
+      message: 'Nhập Event Key (ví dụ: post.created):',
+      validate: (val) => {
+        if (!val || val.trim().length === 0) {
+          return 'Event Key không được để trống';
+        }
+        return true;
+      },
+    },
+  ]);
+  const eventName = eventAnswers.eventName.trim();
+  const eventKey = eventAnswers.eventKey.trim();
+
+  // Generate event files
+  const EventPascal = pascalCase(eventName);
+  const eventKebab = kebabCase(eventName);
+  const root = path.resolve(__dirname, '../src');
+  const files = {
+    index: `index`,
+    eventModule: `event.module`,
+    eventKey: 'event-key',
+    eventMap: 'event-map',
+    eventPublisher: `${eventKebab}.event-publisher`,
+    eventListener: `${eventKebab}.event-listener`,
+  };
+  const paths = {
+    eventDir: path.join(root, 'events'),
+    eventPublishersDir: path.join(root, 'events', 'publishers'),
+    eventListenersDir: path.join(root, 'events', 'listeners'),
+    eventSharesDir: path.join(root, 'events', 'shares'),
+  };
+
+  // const eventConstant = constantCase(eventKey.replace(/\./g, '_'));
+
+  console.log(`🚀 Generating Event: ${EventPascal} with key: ${eventKey} `);
+  await updateEventKey({ EventPascal, eventKey });
+
+  await fs.ensureDir(paths.eventPublishersDir);
+  writeNewFile(
+    path.join(paths.eventPublishersDir, `${files.eventPublisher}.ts`),
+    eventPublisherTs({ EventPascal, eventKey }),
+  );
+  await appendToIndex(
+    path.join(paths.eventPublishersDir, `${files.index}.ts`),
+    [`export * from './${files.eventPublisher}';`],
+  );
+
+  await fs.ensureDir(paths.eventListenersDir);
+  writeNewFile(
+    path.join(paths.eventListenersDir, `${files.eventListener}.ts`),
+    eventListenerTs({ EventPascal, eventKey }),
+  );
+  await appendToIndex(path.join(paths.eventListenersDir, `${files.index}.ts`), [
+    `export * from './${files.eventListener}';`,
+  ]);
+  await updateEventMap({ EventPascal, eventKey });
+  await addListenerToEventModule({ EventPascal, eventKey });
+
+  console.log(`✅ Event ${EventPascal} generated successfully!`);
 }
 
 main().catch((err) => {
@@ -1200,4 +1297,271 @@ async function updateApiVersionModule(
     `✅ Đã thêm ${controllerName} & ${appModuleName} vào ${pathFile}`,
   );
   await formatWithPrettierSync(pathFile);
+}
+
+//===============
+async function createEventKeyConstant(eventKey, eventConstant) {
+  const eventKeysPath = path.join(
+    process.cwd(),
+    'src',
+    'shared',
+    'constants',
+    'event-keys.ts',
+  );
+
+  // Ensure directory exists
+  await fs.ensureDir(path.dirname(eventKeysPath));
+
+  let content = '';
+  if (await fs.pathExists(eventKeysPath)) {
+    content = await fs.readFile(eventKeysPath, 'utf-8');
+  } else {
+    content = `export const EventKey = {\n} as const;\n`;
+  }
+
+  // Add new event key if not exists
+  const keyLine = `  ${eventConstant}: '${eventKey}',`;
+  if (!content.includes(eventConstant)) {
+    content = content.replace('} as const;', `  ${keyLine}\n} as const;`);
+    await fs.writeFile(eventKeysPath, content, 'utf-8');
+    await formatWithPrettierSync(eventKeysPath);
+  }
+}
+function eventPublisherTs({ EventPascal, eventKey, eventKebab }) {
+  return `export class ${EventPascal}CreatedEventPublisher {
+    input?: unknown;
+    constructor(data: ${EventPascal}CreatedEventPublisher) {
+      Object.assign(this, data);
+    }
+  }`;
+}
+
+function eventListenerTs({ EventPascal, eventKey }) {
+  return `import { ${EventPascal}EventPublisher } from '@events/publishers';
+import { EVENT_KEY } from '@events/shares';
+import { Injectable, Logger } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
+@Injectable()
+export class ${EventPascal}EventListener {
+  private readonly logger = new Logger(${EventPascal}EventListener.name);
+  @OnEvent(EventKey.${toConstantCase(eventKey.replace(/\./g, '_'))}, { async: true })
+  handle${EventPascal}(data: ${EventPascal}EventPublisher) {
+    this.logger.log('Data Emitter:', data);
+  }
+}`;
+}
+async function updateEventKey({ eventKey }) {
+  const eventKeyPath = path.join(
+    process.cwd(),
+    'src',
+    'events',
+    'shares',
+    'event-key.ts',
+  );
+
+  const project = new Project();
+  const sourceFile = project.addSourceFileAtPath(eventKeyPath);
+
+  // 1. Lấy declaration của EVENT_KEY
+  const eventKeyVar = sourceFile.getVariableDeclaration('EVENT_KEY');
+  if (!eventKeyVar) {
+    throw new Error('❌ Cannot find variable declaration EVENT_KEY');
+  }
+
+  // 2. Lấy initializer và nếu là "as const" thì unwrap
+  let init = eventKeyVar.getInitializer();
+  if (!init) {
+    throw new Error('❌ EVENT_KEY has no initializer');
+  }
+  // Nếu là AsExpression (tức object ... as const), thì lấy bên trong
+  if (init.getKind() === SyntaxKind.AsExpression) {
+    init = init.getFirstChildByKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+  }
+
+  if (init.getKind() !== SyntaxKind.ObjectLiteralExpression) {
+    throw new Error('❌ EVENT_KEY initializer is not an object literal');
+  }
+  let currentObj = init;
+
+  // 3. Tách và lặp từng phần của key
+  const parts = eventKey.split('.');
+  for (let i = 0; i < parts.length; i++) {
+    const raw = parts[i];
+    const isLast = i === parts.length - 1;
+    const keyName = toConstantCase(raw);
+
+    // 4. Tìm property tại level này
+    let prop = currentObj.getProperty(keyName);
+
+    if (!prop) {
+      if (isLast) {
+        // Level cuối: thêm giá trị string
+        currentObj.addPropertyAssignment({
+          name: keyName,
+          initializer: `'${eventKey}'`,
+        });
+        break;
+      } else {
+        // Level giữa: tạo object rỗng
+        prop = currentObj.addPropertyAssignment({
+          name: keyName,
+          initializer: `{}`,
+        });
+      }
+    }
+
+    // 5. Drill xuống nested nếu chưa phải cuối
+    if (!isLast) {
+      let nested = prop.getInitializer();
+      if (!nested || nested.getKind() !== SyntaxKind.ObjectLiteralExpression) {
+        prop.setInitializer('{}');
+        nested = prop.getInitializer();
+      }
+      currentObj = nested;
+    }
+  }
+
+  // 6. Lưu & format
+  await sourceFile.save();
+  await formatWithPrettierSync(eventKeyPath);
+  console.log(`✅ EVENT_KEY updated: ${eventKey}`);
+}
+
+async function updateEventMap({ eventKey, EventPascal }) {
+  const eventMapPath = path.join(
+    process.cwd(),
+    'src',
+    'events',
+    'shares',
+    'event-map.ts',
+  );
+
+  const project = new Project();
+  const sourceFile = project.addSourceFileAtPath(eventMapPath);
+
+  // 1. Thêm import publisher
+  const publisherName = `${EventPascal}EventPublisher`;
+  const existingImports = sourceFile.getImportDeclaration('@events/publishers');
+
+  if (existingImports) {
+    const namedImports = existingImports.getNamedImports();
+    const hasImport = namedImports.some(
+      (imp) => imp.getName() === publisherName,
+    );
+
+    if (!hasImport) {
+      existingImports.addNamedImport(publisherName);
+    }
+  } else {
+    sourceFile.addImportDeclaration({
+      moduleSpecifier: '@events/publishers',
+      namedImports: [publisherName],
+    });
+  }
+
+  // 2. Thêm vào EventMap interface
+  const eventMapInterface = sourceFile.getInterface('EventMap');
+  if (!eventMapInterface) {
+    console.error('❌ Cannot find EventMap interface');
+    return;
+  }
+
+  // Tạo event key constant path
+  const parts = eventKey.split('.');
+  const constantPath = `EVENT_KEY.${parts[0].toUpperCase()}.${parts[1].toUpperCase()}`;
+
+  // Kiểm tra xem property đã tồn tại chưa
+  const existingProperty = eventMapInterface.getProperty(`[${constantPath}]`);
+  if (!existingProperty) {
+    eventMapInterface.addProperty({
+      name: `[${constantPath}]`,
+      type: publisherName,
+    });
+  }
+
+  // Save và format
+  await sourceFile.save();
+  await formatWithPrettierSync(eventMapPath);
+  console.log(`✅ Updated EventMap with ${constantPath} -> ${publisherName}`);
+}
+function toConstantCase(str) {
+  return (
+    str
+      // chèn dấu gạch dưới trước chữ in hoa, ví dụ "createdOne" → "created_One"
+      .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+      // đổi toàn bộ sang uppercase
+      .toUpperCase()
+  );
+}
+
+async function addListenerToEventModule({ EventPascal }) {
+  // Tính tên class listener
+  const listenerName = `${EventPascal}EventListener`;
+
+  const modulePath = path.join(
+    process.cwd(),
+    'src',
+    'events',
+    'event.module.ts',
+  );
+
+  const project = new Project();
+  const sourceFile = project.addSourceFileAtPath(modulePath);
+
+  // 1. Import từ './listeners'
+  let importDecl = sourceFile.getImportDeclaration(
+    (dec) => dec.getModuleSpecifierValue() === './listeners',
+  );
+  if (importDecl) {
+    // nếu chưa có specifier này thì thêm
+    const already = importDecl
+      .getNamedImports()
+      .some((ni) => ni.getName() === listenerName);
+    if (!already) importDecl.addNamedImport(listenerName);
+  } else {
+    // chưa có import './listeners' hoàn toàn
+    sourceFile.addImportDeclaration({
+      moduleSpecifier: './listeners',
+      namedImports: [listenerName],
+    });
+  }
+
+  // 2. Lấy class EventModule và decorator @Module
+  const eventModuleClass = sourceFile.getClass('EventModule');
+  if (!eventModuleClass) throw new Error('Không tìm thấy class EventModule');
+  const moduleDec = eventModuleClass.getDecorator('Module');
+  if (!moduleDec) throw new Error('Không tìm thấy @Module trên EventModule');
+
+  // 3. Lấy object literal args của @Module({...})
+  const [arg] = moduleDec.getArguments();
+  if (!arg || arg.getKind() !== SyntaxKind.ObjectLiteralExpression)
+    throw new Error('@Module không có argument object');
+  const moduleObj = arg;
+
+  // 4. Tìm hoặc tạo property 'providers'
+  let providersProp = moduleObj.getProperty('providers');
+  if (!providersProp) {
+    moduleObj.addPropertyAssignment({
+      name: 'providers',
+      initializer: '[]',
+    });
+    providersProp = moduleObj.getProperty('providers');
+  }
+
+  // 5. Lấy array literal và thêm listener nếu chưa có
+  const arrLit = providersProp.getFirstChildByKindOrThrow(
+    SyntaxKind.ArrayLiteralExpression,
+  );
+  const exists = arrLit
+    .getElements()
+    .some((el) => el.getText() === listenerName);
+  if (!exists) {
+    arrLit.addElement(listenerName);
+  }
+
+  // 6. Save & format
+  await sourceFile.save();
+  formatWithPrettierSync(modulePath);
+
+  console.log(`✅ Đã thêm ${listenerName} vào providers của EventModule`);
 }

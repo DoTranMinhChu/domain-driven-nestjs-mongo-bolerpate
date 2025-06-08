@@ -1,10 +1,10 @@
 import { Global, Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { ApplicationUserModule } from '@application';
-import { UserCreatedEventListener } from './listeners';
-import { EventEmitterModule } from '@nestjs/event-emitter/dist';
+import { UserCreatedEventListener, UserLoginEventListener } from './listeners';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { TypedEventEmitter } from './shares';
-import { UserLoginEventListener } from './listeners/user-login.event-listener';
+
 @Global()
 @Module({
   imports: [
