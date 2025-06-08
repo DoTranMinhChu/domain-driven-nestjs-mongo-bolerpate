@@ -77,7 +77,7 @@ paths:
         - bearer: []
       summary: Get All User
       tags: &ref_0
-        - User
+        - User V1
     post:
       operationId: UserV1Controller_createUser
       parameters: []

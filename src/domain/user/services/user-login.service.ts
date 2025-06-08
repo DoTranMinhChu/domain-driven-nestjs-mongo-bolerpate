@@ -43,6 +43,7 @@ export class UserLoginService {
     };
 
     return {
+      user,
       accessToken: this.authService.generateToken(accessTokenPayload),
     };
   }

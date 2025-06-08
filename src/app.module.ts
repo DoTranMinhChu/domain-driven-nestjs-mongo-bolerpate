@@ -9,9 +9,11 @@ import { AllExceptionsFilter } from '@shared/filters';
 import { AuthGuard, AccountTypesGuard } from '@shared/guards';
 import { JwtModule } from '@nestjs/jwt';
 import { ApiModule } from '@presentation/api/api.module';
+import { EventModule } from '@events/event.module';
 
 @Module({
   imports: [
+    EventModule,
     GraphqlModule,
     ApiModule,
     JwtModule,
@@ -35,5 +37,6 @@ import { ApiModule } from '@presentation/api/api.module';
       useClass: AccountTypesGuard,
     },
   ],
+  exports: [EventModule],
 })
 export class AppModule {}
