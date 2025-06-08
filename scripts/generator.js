@@ -1344,7 +1344,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 @Injectable()
 export class ${EventPascal}EventListener {
   private readonly logger = new Logger(${EventPascal}EventListener.name);
-  @OnEvent(EventKey.${toConstantCase(eventKey.replace(/\./g, '_'))}, { async: true })
+  @OnEvent(EVENT_KEY.${toConstantCase(eventKey)}, { async: true })
   handle${EventPascal}(data: ${EventPascal}EventPublisher) {
     this.logger.log('Data Emitter:', data);
   }
@@ -1468,7 +1468,7 @@ async function updateEventMap({ eventKey, EventPascal }) {
 
   // Tạo event key constant path
   const parts = eventKey.split('.');
-  const constantPath = `EVENT_KEY.${parts[0].toUpperCase()}.${parts[1].toUpperCase()}`;
+  const constantPath = `EVENT_KEY.${toConstantCase(eventKey)}`;
 
   // Kiểm tra xem property đã tồn tại chưa
   const existingProperty = eventMapInterface.getProperty(`[${constantPath}]`);
