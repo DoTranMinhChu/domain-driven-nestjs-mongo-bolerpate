@@ -7,7 +7,6 @@ import {
   UpdateQuery,
 } from 'mongoose';
 import { MongooseBaseObjectType } from './mongoose-base.object-type';
-import { MongooseBaseRepository } from './mongoose-base.repository';
 
 import { MongooseUpdateOptions } from './mongoose-base.schema';
 import { NotFoundException } from '@nestjs/common';
@@ -24,13 +23,19 @@ export class MongooseBaseService<T extends MongooseBaseObjectType> {
   async create(createData: Partial<T | any>) {
     return await this.repository.create(createData);
   }
-
-  async findAll(
+  async findAllAndCount(
     filter?: FilterQuery<T>,
     projection?: ProjectionType<T> | null | undefined,
     options?: QueryOptions<T> | null | undefined,
   ): Promise<FindAllResponse<T | FlattenMaps<T>>> {
-    return await this.repository.findAll(filter, projection, options);
+    return this.repository.findAllAndCount(filter, projection, options);
+  }
+  async findAll(
+    filter?: FilterQuery<T>,
+    projection?: ProjectionType<T> | null | undefined,
+    options?: QueryOptions<T> | null | undefined,
+  ): Promise<Array<T | FlattenMaps<T>>> {
+    return this.repository.findAll(filter, projection, options);
   }
   async findOne(
     filter?: FilterQuery<T>,

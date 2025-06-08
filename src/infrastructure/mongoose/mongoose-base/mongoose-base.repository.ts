@@ -117,8 +117,7 @@ export class MongooseBaseRepository<T extends MongooseBaseSchema>
 
     return await this.model.findOne(filter, projection, options);
   }
-
-  async findAll(
+  async findAllAndCount(
     filter: FilterQuery<T> = {},
     projection?: ProjectionType<T> | null | undefined,
     options?:
@@ -140,6 +139,17 @@ export class MongooseBaseRepository<T extends MongooseBaseSchema>
       count,
       items,
     };
+  }
+  async findAll(
+    filter: FilterQuery<T> = {},
+    projection?: ProjectionType<T> | null | undefined,
+    options?:
+      | (mongoose.mongo.CountOptions &
+          Omit<MongooseQueryOptions<T>, 'lean' | 'timestamps'>)
+      | QueryOptions<T>
+      | null,
+  ) {
+    return this.model.find(filter, projection, options as QueryOptions<T>);
   }
 
   async updateOneById(

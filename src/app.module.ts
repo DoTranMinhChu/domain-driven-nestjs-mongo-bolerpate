@@ -10,10 +10,12 @@ import { AuthGuard, AccountTypesGuard } from '@shared/guards';
 import { JwtModule } from '@nestjs/jwt';
 import { ApiModule } from '@presentation/api/api.module';
 import { EventModule } from '@events/event.module';
+import { ScheduleJobsModule } from '@schedule-job/schedule-job.module';
 
 @Module({
   imports: [
     EventModule,
+    ScheduleJobsModule,
     GraphqlModule,
     ApiModule,
     JwtModule,

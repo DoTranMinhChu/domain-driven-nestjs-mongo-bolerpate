@@ -26,8 +26,7 @@ export abstract class AMongooseBaseRepository<T> {
     projection?: ProjectionType<T> | null,
     options?: QueryOptions<T> | null,
   ): Promise<MDoc<T> | null>;
-
-  abstract findAll(
+  abstract findAllAndCount(
     filter?: FilterQuery<T>,
     projection?: ProjectionType<T> | null,
     options?:
@@ -36,6 +35,15 @@ export abstract class AMongooseBaseRepository<T> {
       | QueryOptions<T>
       | null,
   ): Promise<IFindAllResult<T>>;
+  abstract findAll(
+    filter?: FilterQuery<T>,
+    projection?: ProjectionType<T> | null,
+    options?:
+      | (mongoose.mongo.CountOptions &
+          Omit<MongooseQueryOptions<T>, 'lean' | 'timestamps'>)
+      | QueryOptions<T>
+      | null,
+  ): Promise<MDoc<T>[]>;
 
   abstract updateOneById(
     id: string | Types.ObjectId,
