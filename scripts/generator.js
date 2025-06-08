@@ -1328,9 +1328,9 @@ async function createEventKeyConstant(eventKey, eventConstant) {
   }
 }
 function eventPublisherTs({ EventPascal, eventKey, eventKebab }) {
-  return `export class ${EventPascal}CreatedEventPublisher {
+  return `export class ${EventPascal}EventPublisher {
     input?: unknown;
-    constructor(data: ${EventPascal}CreatedEventPublisher) {
+    constructor(data: ${EventPascal}EventPublisher) {
       Object.assign(this, data);
     }
   }`;
