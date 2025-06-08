@@ -5,4 +5,4 @@ export const EVENT_KEY = {
     DELETED: 'user.deleted',
     LOGIN: 'user.login',
   },
-};
+} as const;
