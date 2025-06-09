@@ -8,6 +8,7 @@ import {
 } from '@infrastructure/mongoose/schemas';
 import { ScheduleJobRepository } from '@infrastructure/mongoose/repositories';
 import { ScheduleJobExecutor } from './executors/schedule-job-executor';
+import { ScheduleJobHandlerMapping } from './handlers';
 
 @Injectable()
 export class ScheduleJobService implements OnModuleInit {
@@ -48,26 +49,23 @@ export class ScheduleJobService implements OnModuleInit {
     }
   }
   private async registerStaticJobs() {
-    // chỉ tạo trên DB nếu chưa có
-    if (
-      !(await this.jobRepository.findOneByCondition({ name: 'HealthCheck' }))
-    ) {
-      await this.scheduleCron({
-        cron: '*/1 * * * *',
-        name: 'HealthCheck',
-        handler: 'HealthCheck',
-        payload: {},
-      });
-    }
-    if (
-      !(await this.jobRepository.findOneByCondition({ name: 'NotifyUser' }))
-    ) {
-      await this.scheduleCron({
-        cron: '0 0 * * *',
-        name: 'NotifyUser',
-        handler: 'NotifyUser',
-        payload: {},
-      });
+    for (const scheduleJobHandlerMappingItem of ScheduleJobHandlerMapping) {
+      const { provide, isInt, cron } = scheduleJobHandlerMappingItem;
+      if (!isInt || !cron) continue;
+
+      // Kiểm tra xem handler đã được đăng ký chưa
+      if (
+        !(await this.jobRepository.findOneByCondition({
+          name: provide,
+        }))
+      ) {
+        await this.scheduleCron({
+          cron: cron,
+          name: provide,
+          handler: provide,
+          payload: {},
+        });
+      }
     }
   }
   /** Schedule một job chạy 1 lần */
