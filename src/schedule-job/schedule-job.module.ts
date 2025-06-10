@@ -1,14 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
-
 import { ScheduleJobRepository } from '@infrastructure/mongoose/repositories';
 import { ScheduleJobService } from './schedule-jobs.service';
-import { MongooseModule } from '@nestjs/mongoose/dist';
+import { MongooseModule } from '@nestjs/mongoose';
 import {
   ScheduleJobSchema,
   ScheduleJobSchemaFactory,
 } from '@infrastructure/mongoose/schemas';
-import { ScheduleJobExecutor } from './executors/schedule-job-executor';
+import { ScheduleJobExecutor } from './executors';
 import { ScheduleJobHandlerMapping } from './handlers';
 
 @Module({
@@ -16,7 +15,6 @@ import { ScheduleJobHandlerMapping } from './handlers';
     MongooseModule.forFeature([
       { name: ScheduleJobSchema.name, schema: ScheduleJobSchemaFactory },
     ]),
-
     ScheduleModule.forRoot(),
   ],
   providers: [
