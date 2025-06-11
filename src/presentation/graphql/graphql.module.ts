@@ -28,6 +28,7 @@ import {
       fieldResolverEnhancers: ['guards', 'filters', 'interceptors'],
       playground: false,
       plugins: [ApolloServerPluginLandingPageLocalDefault()],
+      path: '/graphql',
     }),
     JwtModule,
     ConfigModule,
