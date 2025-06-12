@@ -1,5 +1,6 @@
 import {
   UserLoginInputType,
+  UserLoginWithGoogleInputType,
   UserRegistrationInputType,
 } from '@presentation/graphql/input-types/user';
 import { UserLoginObjectType } from '@presentation/graphql/object-types';
@@ -15,6 +16,7 @@ import { IAccessToken } from '@domain/auth/interfaces';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { AUserRepository } from '../repositories/user.repository.abstract';
+
 @Injectable()
 export class UserLoginService {
   constructor(
@@ -42,6 +44,30 @@ export class UserLoginService {
       type: EAccountType.USER,
     };
 
+    return {
+      user,
+      accessToken: this.authService.generateToken(accessTokenPayload),
+    };
+  }
+
+  async userLoginWithGoogle(
+    userLoginGoogleInput: UserLoginWithGoogleInputType,
+  ): Promise<UserLoginObjectType> {
+    const { code } = userLoginGoogleInput;
+    const { email, firstName, lastName, locale, picture, profile, sub } =
+      await this.authService.loginWithGoogle(code);
+
+    let user = await this.userRepository.findByUsername(email);
+    if (!user) {
+      user = await this.userRepository.create({
+        username: email,
+        name: firstName && lastName ? `${firstName} ${lastName}` : email,
+      } as UserRegistrationInputType);
+    }
+    const accessTokenPayload: IAccessToken = {
+      id: user._id?.toString(),
+      type: EAccountType.USER,
+    };
     return {
       user,
       accessToken: this.authService.generateToken(accessTokenPayload),

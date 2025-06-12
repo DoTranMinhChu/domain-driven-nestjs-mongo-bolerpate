@@ -11,9 +11,11 @@ import { UserService } from './services/user.service';
 import { UserLoginService } from './services/user-login.service';
 import { AuthService } from '@domain/auth/services/auth.service';
 import { UserRegistrationService } from './services';
+import { DomainAuthModule } from '@domain/auth/auth.module';
 
 @Module({
   imports: [
+    DomainAuthModule,
     MongooseModule.forFeature([
       { name: UserSchema.name, schema: UserSchemaFactory },
     ]),
@@ -23,14 +25,12 @@ import { UserRegistrationService } from './services';
     UserService,
     UserLoginService,
     UserRegistrationService,
-    AuthService,
   ],
   exports: [
     AUserRepository,
     UserService,
     UserLoginService,
     UserRegistrationService,
-    AuthService,
   ],
 })
 export class DomainUserModule {}

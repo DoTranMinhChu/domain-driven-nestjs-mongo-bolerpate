@@ -5,3 +5,4 @@ export * from './update-one-user-by-condition.use-case';
 export * from './delete-one-user-by-condition.use-case';
 export * from './user-login.use-case';
 export * from './user-registration.user-case';
+export * from './user-login-with-google.use-case';

@@ -6,6 +6,7 @@ import {
   DeleteOneUserByConditionUseCase,
   UserLoginUseCase,
   UserRegistrationUseCase,
+  UserLoginWithGoogleUseCase,
 } from '@application';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { GraphqlAuthApi, GraphqlAccountType } from '@shared/decorators';
@@ -17,6 +18,7 @@ import {
   QueryGetListInputType,
   UserLoginInputType,
   UserRegistrationInputType,
+  UserLoginWithGoogleInputType,
 } from '../input-types';
 import {
   UserLoginObjectType,
@@ -35,6 +37,7 @@ export class UserResolver {
     private readonly deleteOneUserByConditionUseCase: DeleteOneUserByConditionUseCase,
     private readonly userLoginUseCase: UserLoginUseCase,
     private readonly userRegistrationUseCase: UserRegistrationUseCase,
+    private readonly userLoginWithGoogleUseCase: UserLoginWithGoogleUseCase,
   ) {}
 
   @Query(() => UserPaginateObjectType)
@@ -81,6 +84,11 @@ export class UserResolver {
   @Mutation(() => UserLoginObjectType)
   async userLogin(@DataArg() data: UserLoginInputType) {
     return this.userLoginUseCase.execute(data);
+  }
+
+  @Mutation(() => UserLoginObjectType)
+  async userLoginWithGoogle(@DataArg() data: UserLoginWithGoogleInputType) {
+    return this.userLoginWithGoogleUseCase.execute(data);
   }
 
   @Mutation(() => UserLoginObjectType)

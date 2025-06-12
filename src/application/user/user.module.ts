@@ -7,6 +7,7 @@ import {
   GetOneUserByConditionUseCase,
   UpdateOneUserByConditionUseCase,
   UserLoginUseCase,
+  UserLoginWithGoogleUseCase,
   UserRegistrationUseCase,
 } from './use-cases';
 import { Module } from '@nestjs/common';
@@ -21,6 +22,7 @@ import { Module } from '@nestjs/common';
     DeleteOneUserByConditionUseCase,
     UserLoginUseCase,
     UserRegistrationUseCase,
+    UserLoginWithGoogleUseCase,
   ],
   exports: [
     DomainUserModule,
@@ -30,6 +32,7 @@ import { Module } from '@nestjs/common';
     UpdateOneUserByConditionUseCase,
     DeleteOneUserByConditionUseCase,
     UserLoginUseCase,
+    UserLoginWithGoogleUseCase,
     UserRegistrationUseCase,
   ],
 })

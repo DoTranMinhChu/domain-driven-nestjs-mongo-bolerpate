@@ -1,6 +1,11 @@
 export default () => ({
   NODE_ENV: process.env['NODE_ENV'],
   firebase: JSON.parse(process.env['FIREBASE'] || '{}') || {},
+  google:{
+    clientId: process.env['GOOGLE_CLIENT_ID'] || '',
+    clientSecret: process.env['GOOGLE_CLIENT_SECRET'] || '',
+    redirectUri: process.env['GOOGLE_REDIRECT_URI'] || '',
+  },
   server: {
     port: parseInt(process.env['SERVER_PORT'] || '3000', 10) || 3000,
     secret: process.env['SERVER_SECRET'] || 'Secret',
